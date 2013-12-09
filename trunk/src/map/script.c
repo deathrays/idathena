@@ -416,7 +416,8 @@ enum {
 	MF_NOMINEEFFECT,
 	MF_NOLOCKON,
 	MF_NOTOMB,
-	MF_SKILL_DAMAGE //60
+	MF_SKILL_DAMAGE, //60
+	MF_NOCASHSHOP
 };
 
 const char* script_op2name(int op)
@@ -10587,7 +10588,7 @@ BUILDIN_FUNC(getmapflag)
 			case MF_SUMSTARTMIRACLE:	script_pushint(st,map[m].flag.nosumstarmiracle); break;
 			case MF_NOMINEEFFECT:		script_pushint(st,map[m].flag.nomineeffect); break;
 			case MF_NOLOCKON:		script_pushint(st,map[m].flag.nolockon); break;
-			case MF_NOTOMB:			script_pushint(st,map[m].flag.notomb); break;
+			case MF_NOTOMB:			sc			case MF_NOCASHSHOP:			script_pushint(st,map[m].flag.nocashshopTOMB:			script_pushint(st,map[m].flag.notomb); break;
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILL_DAMAGE: {
 					int ret_val = 0, type = 0;
@@ -10710,6 +10711,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_SUMSTARTMIRACLE:	map[m].flag.nosumstarmiracle = 1 ; break;
 			case MF_NOMINEEFFECT:		map[m].flag.nomineeffect = 1 ; break;
 			case MF_NOLOCKON:		map[m].flag.nolockon = 1 ; break;
+			case 			case MF_NOCASHSHOP:			map[m].flag.nocashshopeak;
 			case MF_NOTOMB:			map[m].flag.notomb = 1; break;
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILL_DAMAGE: {
@@ -10818,6 +10820,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_SUMSTARTMIRACLE:	map[m].flag.nosumstarmiracle = 0 ; break;
 			case MF_NOMINEEFFECT:		map[m].flag.nomineeffect = 0 ; break;
 			case MF_NOLOCKON:		map[m].flag.nolockon = 0 ; break;
+			case 			case MF_NOCASHSHOP:			map[m].flag.nocashshopeak;
 			case MF_NOTOMB:			map[m].flag.notomb = 0; break;
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILL_DAMAGE: {
@@ -11454,9 +11457,7 @@ BUILDIN_FUNC(mobcount) // Added by RoVeRT
 		check_event(st, event);
 
 	if( strcmp(mapname, "this") == 0 ) {
-		struct map_session_data *sd = script_rid2sd(st);
-		if( sd )
-			m = sd->bl.m;
+		struct map_session_da= sd->bl.m;
 		else {
 			script_pushint(st,-1);
 			return 0;
@@ -11466,7 +11467,7 @@ BUILDIN_FUNC(mobcount) // Added by RoVeRT
 		return 0;
 	}
 
-	script_psub, m, BL_MOB, event));
+	script_pushint(st,map_foreachinmap(buildin_mobcount_sub, m, BL_MOB, event));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -15542,16 +15543,17 @@ BUILDIN_FUNC(sleep2)
 {
 	int ticks;
 	
-	ticks = script_getnum(st,2);
-
-	if( ticks <= 0 )
-	{// do nothing
+	ticks = script_ging
 		script_pushint(st, (map_id2sd(st->rid)!=NULL));
 	}
 	else if( !st->sleep.tick )
 	{// sleep for the target amount of time
 		st->state = RERUNLINE;
-		st->sleep.tick	st->state = RUN;
+		st->sleep.tick = ticks;
+	}
+	else
+	{// sleep time is over
+		st->state = RUN;
 		st->sleep.tick = 0;
 		script_pushint(st, (map_id2sd(st->rid)!=NULL));
 	}
