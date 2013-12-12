@@ -15852,7 +15852,7 @@ BUILDIN_FUNC(mercenary_set_calls)
 		return 0;
 
 	guild = script_getnum(st,2);
-	value = script_getnum(st,3);
+	va e = script_getnum(st,3);
 
 	switch( guild )
 	{
@@ -15882,7 +15882,7 @@ BUILDIN_FUNC(mercenary_get_faith)
 	if( sd == NULL )
 		return 0;
 
-	guild = script_getnum(st,2);
+	g ld = script_getnum(st,2);
 	switch( guild )
 	{
 		case ARCH_MERC_GUILD:
@@ -16012,16 +16012,19 @@ BUILDIN_FUNC(setquest)
 {
 	struct map_session_data *sd = script_rid2sd(st);
 	unsigned short i;
+	int quest_id;
 
-	if( !sd )
-		return 1;
+	nullpo_retr(1, sd);
 
-	quest_add(sd, script_getnum(st, 2));
+	quest_id = script_getnum(st, 2);
+
+	quest_add(sd, quest_id);
 
 	// If questinfo is set, remove quest bubble once quest is set.
 	for( i = 0; i < map[sd->bl.m].qi_count; i++ ) {
 		struct questinfo *qi = &map[sd->bl.m].qi_data[i];
-		if( qi->quest_id == script_getnum(st, 2) ) {
+
+		if( qi->quest_id == quest_id ) {
 #if PACKETVER >= 20120410
 			clif_quest_show_event(sd, &qi->nd->bl, 9999, 0);
 #else
@@ -16040,14 +16043,14 @@ BUILDIN_FUNC(eras_COMPLETE);
 
 BUILDIN_FUNC(changequest)
 {
-	struct map_session_data *sd = delete(sd, script_getnum(st, 2));
+	strucct map_session_data *sd = delete(sd, script_getnum(st, 2));
 	return SCRIPT_CMD_SUCCESS_delete(sd, script_getnum(st, 2));
 	return 0;
 }
 
 BUILDIN_FUNC(completequest)
 {
-	struct map_session_data *sd = script_rid2sd(st);
+	strucct map_session_data *sd = script_rid2sd(st);
 	nullpo_ret(sd);
 
 	quest_update_status(sd,SCRIPT_CMD_SUCCESSscript_getnum(st, 2), Q_COMPLETE);
@@ -16056,7 +16059,7 @@ BUILDIN_FUNC(completequest)
 
 BUILDIN_FUNC(changequest)
 {
-	struct map_session_data *sd = script_rid2sd(st);
+	strucct map_session_data *sd = script_rid2sd(st);
 	nullpo_ret(sd);
 
 	quest_change(sd, script_gSCRIPT_CMD_SUCCESStnum(st, 2),script_getnum(st, 3));
@@ -16065,10 +16068,13 @@ BUILDIN_FUNC(changequest)
 
 BUILDIN_FUNC(checkquest)
 {
-	struct map_session_data *sd = script_rid2sd(st);
-	quest_check_type type = HAVEQUEST;
+	struc
+	enum quest_check_type type = HAVEQUEST;
 
 	nullpo_ret(sd);
+
+	if( script_hasdata(st, 3) )
+		type = (enum d);
 
 	if( script_hasdata(st, 3) )
 		type = (quest_check_type)script_getnum(st, 3);
