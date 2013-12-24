@@ -3540,7 +3540,7 @@ static void script_detach_state(struct script_state* st, bool dequeue_event)
 #ifdef SECURE_NPCTIMEOUT
 			/**
 			 * We're done with this NPC session, so we cancel the timer (if existent) and move on
-			**/
+			 **/
 			if( sd->npc_idle_timer != INVALID_TIMER ) {
 				delete_timer(sd->npc_idle_timer,npc_rr_secure_timeout_timer);
 				sd->npc_idle_timer = INVALID_TIMER;
@@ -4609,7 +4609,7 @@ BUILDIN_FUNC(prompt)
 		sd->state.menu_or_input = 1;
 		
 		/**
-		 * menus beyond this length crash the client (see bugreport:6402)
+		 * Menus beyond this length crash the client (see bugreport:6402)
 		 **/
 		if( StringBuf_Length(&buf) >= 2047 ) {
 			struct npc_data * nd = map_id2nd(st->oid);
@@ -7619,10 +7619,11 @@ BUILDIN_FUNC(bonus)
 	int val4 = 0;
 	int val5 = 0;
 	TBL_PC* sd;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0; // no player attached
+		return 0; // No player attached
 
 	type = script_getnum(st,2);
 	switch( type ) {
@@ -7642,39 +7643,45 @@ BUILDIN_FUNC(bonus)
 		case SP_VARCASTRATE:
 		case SP_FIXCASTRATE:
 		case SP_SKILL_USE_SP:
-			// these bonuses support skill names
-			val1 = ( script_isstring(st,3) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3) );
+			// These bonuses support skill names
+			data = script_getdata(st,3);
+			get_val(st,data); // Convert into value in case of a variable
+			val1 = (data_isstring(data) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3));
 			break;
 		default:
 			val1 = script_getnum(st,3);
 			break;
 	}
 
-	switch( script_lastdata(st)-2 ) {
+	switch( script_lastdata(st) - 2 ) {
 		case 1:
-			pc_bonus(sd, type, val1);
+			pc_bonus(sd,type,val1);
 			break;
 		case 2:
 			val2 = script_getnum(st,4);
-			pc_bonus2(sd, type, val1, val2);
+			pc_bonus2(sd,type,val1,val2);
 			break;
 		case 3:
 			val2 = script_getnum(st,4);
 			val3 = script_getnum(st,5);
-			pc_bonus3(sd, type, val1, val2, val3);
+			pc_bonus3(sd,type,val1,val2,val3);
 			break;
 		case 4:
-			if( type == SP_AUTOSPELL_ONSKILL && script_isstring(st,4) )
+			data = script_getdata(st,4);
+			get_val(st, data); // Convert into value in case of a variable
+			if( type == SP_AUTOSPELL_ONSKILL && data_isstring(data) )
 				val2 = skill_name2id(script_getstr(st,4)); // 2nd value can be skill name
 			else
 				val2 = script_getnum(st,4);
 
 			val3 = script_getnum(st,5);
 			val4 = script_getnum(st,6);
-			pc_bonus4(sd, type, val1, val2, val3, val4);
+			pc_bonus4(sd,type,val1,val2,val3,val4);
 			break;
 		case 5:
-			if( type == SP_AUTOSPELL_ONSKILL && script_isstring(st,4) )
+			data = script_getdata(st,4);
+			get_val(st,data); // Convert into value in case of a variable
+			if( type == SP_AUTOSPELL_ONSKILL && data_isstring(data) )
 				val2 = skill_name2id(script_getstr(st,4)); // 2nd value can be skill name
 			else
 				val2 = script_getnum(st,4);
@@ -7682,10 +7689,10 @@ BUILDIN_FUNC(bonus)
 			val3 = script_getnum(st,5);
 			val4 = script_getnum(st,6);
 			val5 = script_getnum(st,7);
-			pc_bonus5(sd, type, val1, val2, val3, val4, val5);
+			pc_bonus5(sd,type,val1,val2,val3,val4,val5);
 			break;
 		default:
-			ShowDebug("buildin_bonus: unexpected number of arguments (%d)\n", (script_lastdata(st) - 1));
+			ShowDebug("buildin_bonus: unexpected number of arguments (%d)\n",(script_lastdata(st) - 1));
 			break;
 	}
 
@@ -7702,7 +7709,7 @@ BUILDIN_FUNC(autobonus)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0; // no player attached
+		return 0; // No player attached
 
 	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
 		return 0;
@@ -7739,7 +7746,7 @@ BUILDIN_FUNC(autobonus2)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0; // no player attached
+		return 0; // No player attached
 
 	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
 		return 0;
@@ -7772,17 +7779,20 @@ BUILDIN_FUNC(autobonus3)
 	short rate,atk_type;
 	TBL_PC* sd;
 	const char *bonus_script, *other_script = NULL;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0; // no player attached
+		return 0; // No player attached
 
 	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
 		return 0;
 
 	rate = script_getnum(st,3);
 	dur = script_getnum(st,4);
-	atk_type = ( script_isstring(st,5) ? skill_name2id(script_getstr(st,5)) : script_getnum(st,5) );
+	data = script_getdata(st,5);
+	get_val(st,data); // Convert into value in case of a variable
+	atk_type = (data_isstring(data) ? skill_name2id(script_getstr(st,5)) : script_getnum(st,5));
 	bonus_script = script_getstr(st,2);
 	if( !rate || !dur || !atk_type || !bonus_script )
 		return 0;
@@ -7817,16 +7827,19 @@ BUILDIN_FUNC(skill)
 	int level;
 	int flag = 1;
 	TBL_PC* sd;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
-	id = ( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+	data = script_getdata(st,2);
+	get_val(st,data); // Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	level = script_getnum(st,3);
 	if( script_hasdata(st,4) )
 		flag = script_getnum(st,4);
-	pc_skill(sd, id, level, flag);
+	pc_skill(sd,id,level,flag);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -7846,16 +7859,19 @@ BUILDIN_FUNC(addtoskill)
 	int level;
 	int flag = 2;
 	TBL_PC* sd;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
-	id = ( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+	data = script_getdata(st,2);
+	get_val(st,data); // Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	level = script_getnum(st,3);
 	if( script_hasdata(st,4) )
 		flag = script_getnum(st,4);
-	pc_skill(sd, id, level, flag);
+	pc_skill(sd,id,level,flag);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -7870,15 +7886,18 @@ BUILDIN_FUNC(guildskill)
 	int level;
 	TBL_PC* sd;
 	int i;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
-	id = ( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+	data = script_getdata(st,2);
+	get_val(st,data); // Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	level = script_getnum(st,3);
-	for( i=0; i < level; i++ )
-		guild_skillup(sd, id);
+	for( i = 0; i < level; i++ )
+		guild_skillup(sd,id);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -7891,13 +7910,16 @@ BUILDIN_FUNC(getskilllv)
 {
 	int id;
 	TBL_PC* sd;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
-	id = ( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
-	script_pushint(st, pc_checkskill(sd,id));
+	data = script_getdata(st,2);
+	get_val(st,data); // Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	script_pushint(st,pc_checkskill(sd,id));
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -7911,14 +7933,17 @@ BUILDIN_FUNC(getgdskilllv)
 	int guild_id;
 	uint16 skill_id;
 	struct guild* g;
+	struct script_data *data;
 
 	guild_id = script_getnum(st,2);
-	skill_id = ( script_isstring(st,3) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3) );
+	data = script_getdata(st,3);
+	get_val(st,data); // Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3));
 	g = guild_search(guild_id);
 	if( g == NULL )
-		script_pushint(st, -1);
+		script_pushint(st,-1);
 	else
-		script_pushint(st, guild_checkskill(g,skill_id));
+		script_pushint(st,guild_checkskill(g,skill_id));
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -7943,7 +7968,7 @@ BUILDIN_FUNC(getgmlevel)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	script_pushint(st, pc_get_group_level(sd));
 
@@ -7958,8 +7983,8 @@ BUILDIN_FUNC(getgroupid)
 	TBL_PC* sd;
 
 	sd = script_rid2sd(st);
-	if (sd == NULL)
-		return 1; // no player attached, report source
+	if( sd == NULL )
+		return 1; // No player attached, report source
 	script_pushint(st, pc_get_group_id(sd));
 
 	return SCRIPT_CMD_SUCCESS;
@@ -7995,13 +8020,13 @@ BUILDIN_FUNC(checkoption)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	option = script_getnum(st,2);
 	if( sd->sc.option&option )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8016,13 +8041,13 @@ BUILDIN_FUNC(checkoption1)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	opt1 = script_getnum(st,2);
 	if( sd->sc.opt1 == opt1 )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8037,13 +8062,13 @@ BUILDIN_FUNC(checkoption2)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	opt2 = script_getnum(st,2);
 	if( sd->sc.opt2&opt2 )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8078,9 +8103,9 @@ BUILDIN_FUNC(setoption)
 	if( flag ) { // Add option
 		if( option&OPTION_WEDDING && !battle_config.wedding_modifydisplay )
 			option &= ~OPTION_WEDDING; // Do not show the wedding sprites
-		pc_setoption(sd, sd->sc.option|option);
+		pc_setoption(sd,sd->sc.option|option);
 	} else // Remove option
-		pc_setoption(sd, sd->sc.option&~option);
+		pc_setoption(sd,sd->sc.option&~option);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8096,12 +8121,12 @@ BUILDIN_FUNC(checkcart)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( pc_iscarton(sd) )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8124,11 +8149,11 @@ BUILDIN_FUNC(setcart)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( script_hasdata(st,2) )
 		type = script_getnum(st,2);
-	pc_setcart(sd, type);
+	pc_setcart(sd,type);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8144,12 +8169,12 @@ BUILDIN_FUNC(checkfalcon)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( pc_isfalcon(sd) )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8166,12 +8191,12 @@ BUILDIN_FUNC(setfalcon)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( script_hasdata(st,2) )
 		flag = script_getnum(st,2);
 
-	pc_setfalcon(sd, flag);
+	pc_setfalcon(sd,flag);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8187,12 +8212,12 @@ BUILDIN_FUNC(checkriding)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( pc_isriding(sd) || pc_isridingwug(sd) || pc_isridingdragon(sd) )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8209,11 +8234,11 @@ BUILDIN_FUNC(setriding)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( script_hasdata(st,2) )
 		flag = script_getnum(st,2);
-	pc_setriding(sd, flag);
+	pc_setriding(sd,flag);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8228,12 +8253,12 @@ BUILDIN_FUNC(checkwug)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( pc_iswug(sd) || pc_isridingwug(sd) )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8248,12 +8273,12 @@ BUILDIN_FUNC(checkmadogear)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( pc_ismadogear(sd) )
-		script_pushint(st, 1);
+		script_pushint(st,1);
 	else
-		script_pushint(st, 0);
+		script_pushint(st,0);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8270,11 +8295,11 @@ BUILDIN_FUNC(setmadogear)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
 	if( script_hasdata(st,2) )
 		flag = script_getnum(st,2);
-	pc_setmadogear(sd, flag);
+	pc_setmadogear(sd,flag);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8293,14 +8318,14 @@ BUILDIN_FUNC(savepoint)
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 0;// no player attached, report source
+		return 0; // No player attached, report source
 
-	str = script_getstr(st, 2);
+	str = script_getstr(st,2);
 	x   = script_getnum(st,3);
 	y   = script_getnum(st,4);
 	map = mapindex_name2id(str);
 	if( map )
-		pc_setsavepoint(sd, map, x, y);
+		pc_setsavepoint(sd,map,x,y);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -8308,86 +8333,88 @@ BUILDIN_FUNC(savepoint)
 /*==========================================
  * GetTimeTick(0: System Tick, 1: Time Second Tick)
  *------------------------------------------*/
-BUILDIN_FUNC(gettimetick)	/* Asgard Version */
+BUILDIN_FUNC(gettimetick) /* Asgard Version */
 {
 	int type;
 	time_t timer;
 	struct tm *t;
 
-	type=script_getnum(st,2);
+	type = script_getnum(st,2);
 
-	switch(type){
-	case 2:
-		//type 2:(Get the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC
-		//        from the system clock.)
-		script_pushint(st,(int)time(NULL));
-		break;
-	case 1:
-		//type 1:(Second Ticks: 0-86399, 00:00:00-23:59:59)
-		time(&timer);
-		t=localtime(&timer);
-		script_pushint(st,((t->tm_hour)*3600+(t->tm_min)*60+t->tm_sec));
-		break;
-	case 0:
-	default:
-		//type 0:(System Ticks)
-		script_pushint(st,gettick());
-		break;
+	switch(type) {
+		case 2:
+			//type 2:(Get the number of seconds elapsed since 00:00 hours, Jan 1, 1970 UTC
+			//        from the system clock.)
+			script_pushint(st,(int)time(NULL));
+			break;
+		case 1:
+			//type 1:(Second Ticks: 0-86399, 00:00:00-23:59:59)
+			time(&timer);
+			t = localtime(&timer);
+			script_pushint(st,((t->tm_hour) * 3600 + (t->tm_min) * 60 + t->tm_sec));
+			break;
+		case 0:
+		default:
+			//type 0:(System Ticks)
+			script_pushint(st,gettick());
+			break);
+		else
+			SCRIPT_CMD_SUCCESSlif_emotion(&sd->hd->bl,E_SWT);
 	}
-	return SCRIPT_CMD_SUCCESS;
+	return 0;
 }
 
-/*==========================================
- * GetTime(Type);
+/*==GetTime(Type);
  * 1: Sec     2: Min     3: Hour
  * 4: WeekDay     5: MonthDay     6: Month
  * 7: Year
  *------------------------------------------*/
-BUILDIN_FUNC(gettime)	/* Asgard Version */
+BUILDIN_FUNC(gettime) /* Asgard Version */
 {
 	int type;
 	time_t timer;
 	struct tm *t;
 
-	type=script_getnum(st,2);
+	type = script_getnum(st,2);
 
 	time(&timer);
-	t=localtime(&timer);
+	t = localtime(&timer);
 
-	switch(type){
-	case 1://Sec(0~59)
-		script_pushint(st,t->tm_sec);
-		break;
-	case 2://Min(0~59)
-		script_pushint(st,t->tm_min);
-		break;
-	case 3://Hour(0~23)
-		script_pushint(st,t->tm_hour);
-		break;
-	case 4://WeekDay(0~6)
-		script_pushint(st,t->tm_wday);
-		break;
-	case 5://MonthDay(01~31)
-		script_pushint(st,t->tm_mday);
-		break;
-	case 6://Month(01~12)
-		script_pushint(st,t->tm_mon+1);
-		break;
-	case 7://Year(20xx)
-		script_pushint(st,t->tm_year+1900);
-		break;
-	case 8://Year Day(01~366)
-		script_pushint(st,t->tm_yday+1);
-		break;
-	default://(format error)
-		script_pushint(st,-1);
-		break;
+	switch(type) {
+		case 1://Sec(0~59)
+			script_pushint(st,t->tm_sec);
+			break;
+		case 2://Min(0~59)
+			script_pushint(st,t->tm_min);
+			break;
+		case 3://Hour(0~23)
+			script_pushint(st,t->tm_hour);
+			break;
+		case 4://WeekDay(0~6)
+			script_pushint(st,t->tm_wday);
+			break;
+		case 5://MonthDay(01~31)
+			script_pushint(st,t->tm_mday);
+			break;
+		case 6://Month(01~12)
+			script_pushint(st,t->tm_mon + 1);
+			break;
+		case 7://Year(20xx)
+			script_pushint(st,t->tm_year + 1900);
+			break;
+		case 8://Year Day(01~366)
+			script_pushint(st,t->tm_yday + 1);
+			break;
+		default://(format error)
+			script_pushint(st,-1);
+			break);
+		else
+			SCRIPT_CMD_SUCCESSlif_emotion(&sd->hd->bl,E_SWT);
 	}
-	return SCRIPT_CMD_SUCCESS;
+	return 0;
 }
 
-/*==========================================
- * GetTimeStr("TimeFMT", Length);
+/*==GetTimeStr("TimeFMT", Length);
  *------------------------------------------*/
 BUILDIN_FUNC(gettimestr)
 {
@@ -8396,12 +8423,12 @@ BUILDIN_FUNC(gettimestr)
 	int maxlen;
 	time_t now = time(NULL);
 
-	fmtstr=script_getstr(st,2);
-	maxlen=script_getnum(st,3);
+	fmtstr = script_getstr(st,2);
+	maxlen = script_getnum(st,3);
 
-	tmpstr=(char *)aMalloc((maxlen+1)*sizeof(char));
+	tmpstr = (char *)aMalloc((maxlen + 1) * sizeof(char));
 	strftime(tmpstr,maxlen,fmtstr,localtime(&now));
-	tmpstr[maxlen]='\0';
+	tmpstr[maxlen] = '\0';
 
 	script_pushstr(st,tmpstr);
 	return SCRIPT_CMD_SUCCESS;
@@ -8446,18 +8473,21 @@ BUILDIN_FUNC(itemskill)
 	int id;
 	int lv;
 	TBL_PC* sd;
+	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL || sd->ud.skilltimer != INVALID_TIMER )
 		return 0;
 
-	id = ( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+	data = script_getdata(st,2);
+	get_val(st,data); // Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	lv = script_getnum(st,3);
-	/* temporarily disabled, awaiting for confirmation */
+	/* Temporarily disabled, awaiting for confirmation */
 #if 0
 	if( !script_hasdata(st,4) )
 		if( !skill_check_condition_castbegin(sd,id,lv) || !skill_check_condition_castend(sd,id,lv) )
-			return true;
+			return 0;
 #endif
 	sd->skillitem = id;
 	sd->skillitemlv = lv;
@@ -11403,11 +11433,7 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 		return 0;
 
 	if(!(index=mapindex_name2id(str)))
-		return 0;
-
-	switch(check_val){
-		case 1:
-			g = guild_search(check_ID);
+		returuild_search(check_ID);
 			if (g){
 				for( i=0; i < g->max_member; i++)
 				{
@@ -11428,20 +11454,19 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 			}
 			break;
 		default:
-			map_foreachinmap(buildin_areawa	return SCRIPT_CMD_SUCCESSL_PC,index,x,y,0,0);
+			map_foreachinmap(buildin_areawarp_sub,m,BL_PC,index,x,y,0,0);
 			break;
 	}
-
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 static int buildin_mobcount_sub(struct block_list *bl,va_list ap)	// Added by RoVeRT
 {
 	char *event=va_arg(ap,char *);
 	struct mob_data *md = ((struct mob_data *)bl);
-	if( md->status.hp > 0 && (!event || strcmp(eventSCRIPT_CMD_SUCCESSmd->npc_event) == 0) )
+	if( md->status.hp > 0 && (!event || strcmp(event,md->npc_event) == 0) )
 		return 1;
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(mobcount) // Added by RoVeRT
@@ -11457,7 +11482,9 @@ BUILDIN_FUNC(mobcount) // Added by RoVeRT
 		check_event(st, event);
 
 	if( strcmp(mapname, "this") == 0 ) {
-		struct map_session_da= sd->bl.m;
+		struct map_session_data *sd = script_rid2sd(st);
+		if( sd )
+			m = sd->bl.m;
 		else {
 			script_pushint(st,-1);
 			return 0;
@@ -11936,8 +11963,7 @@ BUILDIN_FUNC(petskillbonus)
 	// Wait for timer to start
 	if (battle_config.pet_equip_required && pd->pet.equip == 0)
 		pd->bonus->timer = INVALID_TIMER;
-	else
-		pd->bonus->timer = add_timer(gettick()+pd->bonus->delay*	return SCRIPT_CMD_SUCCESSskill_bonus_timer, sd->bl.id, 0);
+	e + pd->bonus->delay * imer = add_timer(gettick()+pd->bonus->delay*	return SCRIPT_CMD_SUCCESSskill_bonus_timer, sd->bl.id, 0);
 
 	return 0;
 }
@@ -12168,7 +12194,7 @@ BUILDIN_FUNC(playBGMall)
 	{// entire map
 		const char* map = script_getstr(st,3);
 
-		map_foreachinmap(playBGM_s else // entire server
+		map_foreachinmap(playBGM_s else // Entire server
 		map_foreachpc(&playBGM_foreachpc_sub, name);
 	return SCRIPT_CMD_SUCCESS&playBGM_foreachpc_sub, name);
 	}
@@ -12194,7 +12220,7 @@ int soundeffect_sub(struct block_list* bl,va_list ap)
 	char* name = va_arg(ap,char*);
 	int type = va_arg(ap,int);
 
-	clif_soundeffect((TBL_PC *)bl, bl, name, type);
+	clifsoundeffect((TBL_PC *)bl, bl, name, type);
 
 	return 0;
 }
@@ -12209,24 +12235,21 @@ BUILDIN_FUNC(soundeffectall)
 	const char* name;
 	int type;
 
-	bl = (st->rid) ? &(script_rid2sd(st)->bl) : map_id2bl(st->oid);
-	if (!bl)
+	bl = (st->rid) ? &(scri( !bl )
 		return 0;
 
 	name = script_getstr(st,2);
 	type = script_getnum(st,3);
 
-	//FIXME: enumerating map squares (map_foreach) is slower than enumerating the list of online players (map_foreachpc?) [ultramage]
+	// FIXME: E);
+	type = script_getnum(st,3);
 
-	if(!script_hasdata(st,4))
-	{	// area around
-		clif_soundeffectall(bl, name, type, AREA);
-	}
-	else
-	if(!script_hasdata(st,5))
-	{	// entire map
+	//FIXME: enumerating map squares (map_foreach) is slower than enumerating the list of 	if( !script_hasdata(st,4) ) // Area around
+		clif_soundeffectall(bl,name,type,AREA);
+	else if( !script_hasdata(st,5) ) { // Entire map
 		const char* map = script_getstr(st,4);
-		map_foreachinmap(soundeffect_sub, map_mapname2mapid(map), BL_PC, name, type);
+		map_foreachinmap(soundeffect_sub,map_mapname2mapid(map),BL_PC,name,type);
+	} else if( script_hasdata(st,8) ) { // S;
 	}
 	else
 	if(script_hasdata(st,8))
@@ -12235,34 +12258,32 @@ BUILDIN_FUNC(soundeffectall)
 		int x0 = script_getnum(st,5);
 		int y0 = script_getnum(st,6);
 		int x1 = script_getnum(st,7);
-		int y1 = script_getnum(st,8);
-		map_foreachinarea(soundeffect_sub, map_mapname2mapid(map), x0, y0, x1, y1, BL_PC, name, type);
+		int y1 = script_getnummap_mapname2mapid(map),x0,y0,x1,y1,BL_PC,name,type);
+	} else y0, x1, y1, BL_PC, name, type);
 	}
 	else
 	{
-		ShowError("buildin_soundeffectall: insufficient arg	return SCRIPT_CMD_SUCCESS specific area broadcast.\n");
-	}
+		ShowError("buildin_soundeffectall: insufficient 		return SCRIPT_CMD_SUCCESScount = 0;
+	pd->loot->weight = 0;
 
 	return 0;
 }
 /*==========================================
  * pet status recovery [Valaris] / Rewritten by [Skotlex]
  *------------------------------------------*/
-BUILDIN_FUNC(petrecovery)
-{
-	struct pet_data *pd;
-	TBL_PC *sd=script_rid2sd(st);
+BUILDIN_FUNC(petr = script_rid2sd(st);
 
-	if(sd==NULL || sd->pd==NULL)
+	if( sd == NULL || sd->pd == NULL )
 		return 0;
 
-	pd=sd->pd;
+	pd = sd->pd;
 	
-	if (pd->recovery) { //Halt previous bonus
-		if (pd->recovery->timer != INVALID_TIMER)
-			delete_timer(pd->recovery->timer, pet_recovery_timer);
+	if( pd->recovery ) { //Halt previous bonus
+		if( pd->recovery->timer != INVALID_TIMER )
+			delete_timer(pd->recovery->timer,pet_recovery_timer);
 	} else //Init
 		pd->recovery = (struct pet_recovery *)aMalloc(sizeof(struct pet_recovery));
+y *)aMalloc(sizeof(struct pet_recovery));
 		
 	pd->recovery->type = (sc_type)script_getnum(st,2);
 	pd->recovery->delay = script_getnum(s	return SCRIPT_CMD_SUCCESS>recovery->timer = INVALID_TIMER;
@@ -12273,88 +12294,85 @@ BUILDIN_FUNC(petrecovery)
 /*==========================================
  * pet healing [Valaris] //Rewritten by [Skotlex]
  *------------------------------------------*/
-BUILDIN_FUNC(petheal)
-{
-	struct pet_data *pd;
-	TBL_PC *sd=script_rid2sd(st);
+BUILDIN_FUNC( = script_rid2sd(st);
 
-	if(sd==NULL || sd->pd==NULL)
+	if( sd == NULL || sd->pd == NULL )
 		return 0;
 
-	pd=sd->pd;
-	if (pd->s_skill) { //Clear previous skill
-		if (pd->s_skill->timer != INVALID_TIMER) {
-			if (pd->s_skill->id)
-				delete_timer(pd->s_skill->timer, pet_skill_support_timer);
+	pd = sd->pd;
+	if( pd->s_skill ) { //Clear previous skill
+		if( pd->s_skill->timer != INVALID_TIMER ) {
+			if( pd->s_skill->id )
+				delete_timer(pd->s_skill->timer,pet_skill_support_timer);
 			else
-				delete_timer(pd->s_skill->timer, pet_heal_timer);
+				delete_timer(pd->s_skill->timer,pet_heal_timer);
 		}
-	} else //init memory
-		pd->s_skill = (struct pet_skill_support *) aMalloc(sizeof(struct pet_skill_support));
+	} else //Init memory
+		pd->s_skill = (struct pet_skill_support *)aMalloc(sizeof(struct pet_skill_support));
+	
+	pd->s_skill->id = uct pet_skill_support));
 	
 	pd->s_skill->id=0; //This id identifies that it IS petheal rather than pet_skillsupport
-	//Use the lv as the amount to heal
-	pd->s_skill->lv=script_getnum(st,2);
-	pd->s_skill->delay=script_getnum(st,3);
-	pd->s_skill->hp=script_getnum(st,4);
-	pd->s_skill->sp=script_getnum(st,5);
+	//Use t = script_getnum(st,2);
+	pd->s_skill->delay = script_getnum(st,3);
+	pd->s_skill->hp = script_getnum(st,4);
+	pd->s_skill->sp = script_getnum(st,5);
 
 	//Use delay as initial offset to avoid skill/heal exploits
-	if (battle_config.pet_equip_required && pd->pet.equip == 0)
+	if( battle_config.pet_equip_required && pd->pet.equip == 0 fig.pet_equip_required && pd->pet.equip == 0)
 		pd->s_skill->timer = INVALID_TIMER;
-	else
-		pd->s_skill->timer = add_timer(gettick()+pd->s_ski	return SCRIPT_CMD_SUCCESS1000,pet_heal_timer,sd->bl.id,0);
+	els + pd->s_skill->delay * 1000,pet_heal()+pd->s_skill->delay	return SCRIPT_CMD_SUCCESSskill_support_timer,sd->bl.id,0);
 
 	return 0;
 }
 
-/*==========================================
- * pet attack skills [Valaris] //Rewritten by [Skotlex]
+/*==pet attack skills [Valaris] //========
+ * pet status recovery [Valaris] / Rewritten by [Skotlex]
  *------------------------------------------*/
 /// petskillattack <skill id>,<level>,<rate>,<bonusrate>
 /// petskillattack "<skill name>",<level>,<rate>,<bonusrate>
-BUILDIN_FUNC(petskillattack)
-{
-	struct pet_data *pd;
-	TBL_PC *sd=script_rid2sd(st);
+BUILDIN_FUstruct script_data *data;
+	TBL_PC *sd = script_rid2sd(st);
 
-	if(sd==NULL || sd->pd==NULL)
+	if( sd == NULL || sd->pd == NULL )
 		return 0;
 
-	pd=sd->pd;
-	if (pd->a_skill == NULL)
+	pd = sd->pd;
+	if( pd->a_skill == NULL )
 		pd->a_skill = (struct pet_skill_attack *)aMalloc(sizeof(struct pet_skill_attack));
-				
-	pd->a_skill->id=( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
-	pd->a_skill->lv=script_getnum(st,3);
-	pd->a_skill->div_ = 0;
-	pd->a_skill->rate=script_getnum(st,4);
-		return SCRIPT_CMD_SUCCESSl->bonusrate=script_getnum(st,5);
 
-	return 0;
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	pd->a_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	pd->a_skill->lv = script_getnum(st,3);
+	pd->a_skill->div_ = 0;
+	pd->a_skill->rate = script_getnum(st,4);
+	pd->a_skill->bonusrate = script_getnum(st,5);
+	return SCRIPT_CMD_SUCCESS;
 }
 
-/*==========================================
+/*==========================================/*==========================================
  * pet attack skills [Valaris]
  *------------------------------------------*/
 /// petskillattack2 <skill id>,<level>,<div>,<rate>,<bonusrate>
 /// petskillattack2 "<skill name>",<level>,<div>,<rate>,<bonusrate>
-BUILDIN_FUNC(petskillattack2)
-{
-	struct pet_data *pd;
-	TBL_PC *sd=script_rid2sd(st);
+BUILDIN_FUNstruct script_data *data;
+	TBL_PC *sd = script_rid2sd(st);
 
-	if(sd==NULL || sd->pd==NULL)
+	if( sd == NULL || sd->pd == NULL )
 		return 0;
 
-	pd=sd->pd;
-	if (pd->a_skill == NULL)
+	pd = sd->pd;
+	if( pd->a_skill == NULL )
 		pd->a_skill = (struct pet_skill_attack *)aMalloc(sizeof(struct pet_skill_attack));
-				
-	pd->a_skill->id=( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	pd->a_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	pd->a_skill->lv = ) : script_getnum(st,2) );
 	pd->a_skill->lv=script_getnum(st,3);
-	pd->a_skill->div_ = script_getnum(st,4);
-	pd->a_skill->rate=script_getnum(st,5);
+	pd->a_skill->di = script_getnum(st,5);
+	pd->a_skill->bonusrate = cript_getnum(st,5);
 		return SCRIPT_CMD_SUCCESSl->bonusrate=script_getnum(st,6);
 
 	return 0;
@@ -12365,36 +12383,34 @@ BUILDIN_FUNC(petskillattack2)
  *------------------------------------------*/
 /// petskillsupport <skill id>,<level>,<delay>,<hp>,<sp>
 /// petskillsupport "<skill name>",<level>,<delay>,<hp>,<sp>
-BUILDIN_FUNC(petskillsupport)
-{
-	struct pet_data *pd;
-	TBL_PC *sd=script_rid2sd(st);
+BUILDIN_FUNstruct script_data *data;
+	TBL_PC *sd = script_rid2sd(st);
 
-	if(sd==NULL || sd->pd==NULL)
+	if( sd == NULL || sd->pd == NULL )
 		return 0;
 
-	pd=sd->pd;
-	if (pd->s_skill) { //Clear previous skill
-		if (pd->s_skill->timer != INVALID_TIMER) {
+	pd = sd->pd;
+	if( pd->s_skill ) { //Clear previous skill
+		if( pd->s_skill->timer != INVALID_TIMER ) {
+			if( pd->s_skill->id r != INVALID_TIMER) {
 			if (pd->s_skill->id)
 				delete_timer(pd->s_skill->timer, pet_skill_support_timer);
 			else
-				delete_timer(pd->s_skill->timer, pet_heal_timer);
-		}
-	} else //init memory
-		pd->s_skill = (struct pet_skill_support *) aMalloc(sizeof(struct pet_skill_support));
-	
-	pd->s_skill->id=( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
-	pd->s_skill->lv=script_getnum(st,3);
-	pd->s_skill->delay=script_getnum(st,4);
-	pd->s_skill->hp=script_getnum(st,5);
+				delete_timer(pd->s_sInit memory
+		pd->s_skill = (struct pet_skill_support *)aMalloc(sizeof(struct pet_skill_support));
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	pd->s_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	pd->s_skill->lv = script_getnum(st,3);
+	pd->s_skill->delay = script_getnum(st,4);
+	pd->s_skill->hp = script_getnum(st,5);
+	pd->s_skill->sp = l->hp=script_getnum(st,5);
 	pd->s_skill->sp=script_getnum(st,6);
 
-	//Use delay as initial offset to avoid skill/heal exploits
-	if (battle_config.pet_equip_required && pd->pet.equip == 0)
+	//Use delay as ini( battle_config.pet_equip_required && pd->pet.equip == 0 fig.pet_equip_required && pd->pet.equip == 0)
 		pd->s_skill->timer = INVALID_TIMER;
-	else
-		pd->s_skill->timer = add_timer(gettick()+pd->s_skill->delay	return SCRIPT_CMD_SUCCESSskill_support_timer,sd->bl.id,0);
+	els + pd->s_skill->delay * er = add_timer(gettick()+pd->s_skill->delay	return SCRIPT_CMD_SUCCESSskill_support_timer,sd->bl.id,0);
 
 	return 0;
 }
@@ -12403,12 +12419,14 @@ BUILDIN_FUNC(petskillsupport)
  * Scripted skill effects [Celest]
  *------------------------------------------*/
 /// skilleffect <skill id>,<level>
-/// skilleffect "<skill name>",<level>
-BUILDIN_FUNC(skilleffect)
-{
+/// skilleffect "<skill struct script_data *data = script_getdata(st,2);
 	TBL_PC *sd;
+	uint16 skill_id, skill_lv;
 
-	uint16 skill_id=( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	skill_lv = script_getnum(st,3);
+	sd = ;
 	uint16 skill_lv=script_getnum(st,3);
 	sd=script_rid2sd(st);
 
@@ -12422,13 +12440,18 @@ BUILDIN_FUNC(skilleffect)
  *------------------------------------------*/
 /// npcskilleffect <skill id>,<level>,<x>,<y>
 /// npcskilleffect "<skill name>",<level>,<x>,<y>
-BUILDIN_FUNC(npcskilleffect)
-{
-	struct block_list *bl= map_id2bl(st->oid);
+BUILDIN_F = map_id2bl(st->oid);
+	struct script_data *data = script_getdata(st,2);
+	uint16 skill_id, skill_lv;
+	int x, y;
 
-	uint16 skill_id=( script_isstring(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2) );
-	uint16 skill_lv=script_getnum(st,3);
-	int x=script_getnum(st,4);
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	skill_lv = script_getnum(st,3);
+	x = script_getnum(st,4);
+	y = script_getnum(st,5);
+
+	if( bl (st,4);
 	int y=script_getnum(st,5);
 
 	if (bl)
@@ -12440,51 +12463,43 @@ BUILDIN_FUNC(npcskilleffect)
 /*==========================================
  * Special effects [Valaris]
  *------------------------------------------*/
-BUILDIN_FUNC(specialeffect)
+BUILDIN_ = UNC(specialeffect)
 {
 	struct block_list *bl=map_id2bl(st->oid);
 	int type = script_getnum(st,2);
-	enum send_target target = script_hasdata(st,3) ? (send_target)script_getnum(st,3) : AREA;
-
-	if(bl==NULL)
+	enum send_target target = script_hasdata(st,3) ? (s bl == NULL )
 		return 0;
 
-	if( script_hasdata(st,4) )
-	{
+	if( script_hasdata(st,4) ) {
 		TBL_NPC *nd = npc_name2id(script_getstr(st,4));
-		if(nd)
-			clif_specialeffect(&nd->bl, type, target);
-	}
-	else
-	{
-		if (target == SELF) {
-			TBL_PC *sd=script_rid2sd(st);
-			if (sd)
+		if( nd )
+			clif_specialeffect(&nd->bl,type,target);
+	} else {
+		if( target == SELF ) {
+			TBL_PC *sd = script_rid2sd(st);
+			if( sd )
 				clif_specialeffect_single(bl,type,sd->fd);
-		} else {
-			c	return SCRIPT_CMD_SUCCESSleffect(bl, type, target);
-		}
+		} else
+			clif_specialeffect(bl,type,target);
 	}
-
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(specialeffect2)
 {
-	TBL_PC *sd=script_rid2sd(st);
+	TBL_PC *sd = script_rid2sd(st)
+{
+	struct block_list *bl=map_id2bl(st->oid);
 	int type = script_getnum(st,2);
-	enum send_target target = script_hasdata(st,3) ? (send_target)script_getnum(st,3) : AREA;
-
-	if( script_hasdata(st,4) )
+	enum send_target target = script_hasdata(st,3) ? (s script_hasdata(st,4) )
 		sd = map_nick2sd(script_getstr(st,4));
 
-	if (sd)
-		return SCRIPT_CMD_SUCCESSialeffect(&sd->bl, type, target);
-
-	return 0;
+	if( sd )
+		clif_specialeffect(&sd->bl,type,target);
+	return SCRIPT_CMD_SUCCESS;
 }
 
-/*==========================================
+/*==========================================/*==========================================
  * Nude [Valaris]
  *------------------------------------------*/
 BUILDIN_FUNC(nude)
@@ -12497,9 +12512,7 @@ BUILDIN_FUNC(nude)
 
 	for( i = 0 ; i < EQI_MAX; i++ ) {
 		if( sd->equip_index[ i ] >= 0 ) {
-			if( !calcflag )
-				calcflag = 1;
-			pc_unequipitem( sd , sd->equip_index[ i ] , 2);
+			if( !calsd,sd->equip_index[i],pc_unequipitem( sd , sd->equip_index[ i ] , 2);
 		}
 	}
 
@@ -12513,7 +12526,7 @@ int atcommand_sub(struct script_state* st,int type) {
 	TBL_PC dummy_sd;
 	TBL_PC* sd;
 	int fd;
-	const char* cmd;
+	const ( st->rid ;
 
 	cmd = script_getstr(st,2);
 
@@ -12521,28 +12534,29 @@ int atcommand_sub(struct script_state* st,int type) {
 		sd = script_rid2sd(st);
 		fd = sd->fd;
 	} else { //Use a dummy character.
-		sd = &dummy_sd;
-		fd = 0;
-
-		memset(&dummy_sd, 0, sizeof(TBL_PC));
-		if (st->oid) {
+		sd0,sizeof(TBL_PC));
+		if( st->oid ) {
 			struct block_list* bl = map_id2bl(st->oid);
-			memcpy(&dummy_sd.bl, bl, sizeof(struct block_list));
-			if (bl->type == BL_NPC)
-				safestrncpy(dummy_sd.status.name, ((TBL_NPC*)bl)->name, NAME_LENGTH);
+
+			memcpy(&dummy_sd.bl,bl,sizeof(struct block_list));
+			if( bl->type == BL_NPC )
+				safestrncpy(dummy_sd.status.name,((TBL_NPC*)bl)->name,NAME_LENGTH);
 		}
 	}
 
-	if (!is_atcommand(fd, sd, cmd, type)) {
-		ShowWarning("script: buildin_atcommand: failed to execute command '%s'\n", c	return SCRIPT_CMD_SUCCESSipt_reportsrc(st);
+	if( !is_atcommand(fd, sd, cmd, type) ) {
+		ShowWarning("script: buildin_atcommand: failed to execute command '%s'\n",cmd);
+		script_reportsrc(st: bad mob id given	return SCRIPT_CMD_SUCCESS;t_getnum(st,2));
 		return 1;
 	}
 
 	return 0;
+
 }
 
-/*==========================================
- * gmcommand [MouseJstr]
+
+ * gmcommand=================================
+ * movenpc [MouseJstr]
  *------------------------------------------*/
 BUILDIN_FUNC(atcommand)
 {
@@ -12554,8 +12568,9 @@ BUILDIN_FUNC(atcommand)
  *------------------------------------------*/
 BUILDIN_FUNC(dispbottom)
 {
-	TBL_PC *sd = script_rid2sd(st);
-	const char *message;
+	TBL_PC *sd
+	message = script_getstr(st,2);
+	if( sd sage;
 	message = script_getstr(st,2);
 	if(sd)
 		clif_disp_onlyselSCRIPT_CMD_SUCCESS(sd,message,(int)strlen(message));
@@ -12565,12 +12580,12 @@ BUILDIN_FUNC(dispbottom)
 /*===================================
  * Heal portion of recovery command
  *-----------------------------------*/
-int recovery_sub(struct map_session_data* sd, int revive)
+int recovery_sub(str revive&(1|4) && pc_isdead(sd)  revive)
 {
 	if(revive&(1|4) && pc_isdead(sd)) {
 		status_revive(&sd->bl,100,100);
 		clif_displaymessage(sd->fd,msg_txt(16)); //You've been revived!
-		clif_specialeffect(&sd->bl,77,AREA);
+		clif revive&(1|2) && !pc_isdead(sd) );
 	} else if(revive&(1|2) && !pc_isdead(sd)) {
 		status_percent_heal(&sd->bl,100,100);
 		clif_displaymessage(sd->fd,msg_txt(6SCRIPT_CMD_SUCCESS0)); //You have been recovered!
@@ -12597,97 +12612,96 @@ int recovery_sub(struct map_session_data* sd, int revive)
 BUILDIN_FUNC(recovery)
 {
 	TBL_PC *sd;
-	int map = 0, type = 0, revive = 1;
-
-	type = script_getnum(st,2);
-
-	if(script_hasdata(st,4))
+	int map = 0, type = 0	if( script_hasdata(st,4) )
 		revive = script_getnum(st,4);
 
-	switch(type) {
+	switch( type ) {
 		case 0:
-			if(script_hasdata(st,3))
+			if( script_hasdata(st,3) )
 				sd = map_charid2sd(script_getnum(st,3));
+			else if( (sd = script_rid2sd(st)) == NULL 
 			else if((sd = script_rid2sd(st)) == NULL)
 				return 0; //If we don't have sd by now, bail out
-			recovery_sub(sd, revive);
-			break;
-		case 1: {
-			struct party_data* p;
-			struct map_session_data* pl_sd;
-			//When no party given, we use invoker party
-			int p_id = 0, i;
-			if(script_hasdata(st,5)) { //Bad maps shouldn't cause issues
-				map = map_mapname2mapid(script_getstr(st,5));
-				if(map < 1) { //But we'll check anyways
-					ShowDebug("recovery: bad map name given (%s)\n", script_getstr(st,5));
-					return 1;
+			recover	struct party_data* p;
+				struct map_session_data* pl_sd;
+				//When no party given, we use invoker party
+				int p_id = 0, i;
+
+				if( script_hasdata(st,5) ) { //Bad maps shouldn't cause issues
+					map = map_mapname2mapid(script_getstr(st,5));
+					if( map < 1 ) { //But we'll check anyways
+						ShowDebug("recovery: bad map name given (%s)\n",script_getstr(st,5));
+						return 1;
+					}
+				}
+				if( script_hasdata(st,3) )
+					p_id = script_getnum(st,3);
+				else if( (sd = script_rid2sd(st)) )
+					p_id = sd->status.party_id;
+				p = party_search(p_id);
+				if( p == NULL )
+					return 0;
+				for( i = 0; i < MAX_PARTY; i++ ) {
+					if( (!(pl_sd = p->data[i].sd) || pl_sd->status.party_id != p_id) ||
+						(map && pl_sd->bl.m != map) )
+						continue;
+					recovery_sub(pl_sd,revive);
 				}
 			}
-			if(script_hasdata(st,3))
-				p_id = script_getnum(st,3);
-			else if((sd = script_rid2sd(st)))
-				p_id = sd->status.party_id;
-			p = party_search(p_id);
-			if(p == NULL)
-				return 0;
-			for(i = 0; i < MAX_PARTY; i++) {
-				if((!(pl_sd = p->data[i].sd) || pl_sd->status.party_id != p_id)
-					|| (map && pl_sd->bl.m != map))
-					continue;
-				recovery_sub(pl_sd, revive);
-			}
 			break;
-		}
 		case 2: {
-			struct guild* g;
-			struct map_session_data* pl_sd;
-			//When no guild given, we use invoker guild
-			int g_id = 0, i;
-			if(script_hasdata(st,5)) { //Bad maps shouldn't cause issues
-				map = map_mapname2mapid(script_getstr(st,5));
-				if(map < 1) { //But we'll check anyways
-					ShowDebug("recovery: bad map name given (%s)\n", script_getstr(st,5));
-					return 1;
+				struct guild* g;
+				struct map_session_data* pl_sd;
+				//When no guild given, we use invoker guild
+				int g_id = 0, i;
+
+				if( script_hasdata(st,5) ) { //Bad maps shouldn't cause issues
+					map = map_mapname2mapid(script_getstr(st,5));
+					if( map < 1 ) { //But we'll check anyways
+						ShowDebug("recovery: bad map name given (%s)\n",script_getstr(st,5));
+						return 1;
+					}
+				}
+				if( script_hasdata(st,3) )
+					g_id = script_getnum(st,3);
+				else if( (sd = script_rid2sd(st)) )
+					g_id = sd->status.guild_id;
+				g = guild_search(g_id);
+				if( g == NULL )
+					return 0;
+				for( i = 0; i < MAX_GUILD; i++ ) {
+					if( (!(pl_sd = g->member[i].sd) || pl_sd->status.guild_id != g_id) ||
+						(map && pl_sd->bl.m != map) )
+						continue;
+					recovery_sub(pl_sd,revive);
 				}
 			}
-			if(script_hasdata(st,3))
-				g_id = script_getnum(st,3);
-			else if((sd = script_rid2sd(st)))
-				g_id = sd->status.guild_id;
-			g = guild_search(g_id);
-			if(g == NULL)
-				return 0;
-			for (i = 0; i < MAX_GUILD; i++) {
-				if((!(pl_sd = g->member[i].sd) || pl_sd->status.guild_id != g_id)
-					|| (map && pl_sd->bl.m != map))
-					continue;
-				recovery_sub(pl_sd,revive);
-			}
 			break;
-		}
 		case 3:
-			if(script_hasdata(st,3))
+			if( script_hasdata(st,3) )
 				map = map_mapname2mapid(script_getstr(st,3));
-			else if((sd = script_rid2sd(st)))
+			else if( (sd = script_rid2sd(st)) )
 				map = sd->bl.m;
-			if(map < 1)
+			if( map < 1 )
 				return 1; //No sd and no map given - return
 		case 4: {
-			struct s_mapiterator *iter;
-			if(script_hasdata(st,3) && !script_isstring(st,3))
-				revive = script_getnum(st,3); // recovery 4,<revive_flag>;
-			iter = mapit_getallusers();
-			for(sd = (TBL_PC*)mapit_first(iter); mapit_exists(iter); sd = (TBL_PC*)mapit_next(iter)) {
-				if(type == 3 && sd->bl.m != map)
-					continue;
-				recovery_sub(sd, revive);
+				struct s_mapiterator *iter;
+				struct script_data *data = script_getdata(st,3);
+
+				get_val(st,data); //Convert into value in case of a variable
+				if( script_hasdata(st,3) && !data_isstring(data) )
+					revive = script_getnum(st,3); //Recovery 4,<revive_flag>;
+				iter = mapit_getallusers();
+				for( sd = (TBL_PC*)mapit_first(iter); mapit_exists(iter); sd = (TBL_PC*)mapit_next(iter) ) {
+					if( type == 3 && sd->bl.m != map )
+						continue;
+					recovery_sub(sd, revive);
+				}
+				mapit_free(iter);
 			}
-			mapit_free(iter);
 			break;
-		}
 		default:
-			ShowWarning("script: buildin_recovery: Invalid type %d\n", type);
+			ShowWarning("script: buildin_recovery: Invalid type %d\n",ript: buildin_recovery: Invalid type %d\n", type);
 			script_pushint(st,-1);
 			return 1;
 	}
@@ -12699,18 +12713,18 @@ BUILDIN_FUNC(recovery)
  * Get your pet info: getpetinfo(n)
  * n -> 0:pet_id 1:pet_class 2:pet_name
  * 3:friendly 4:hungry, 5: rename flag, 6:level
- *------------------------------------------*/
-BUILDIN_FUNC(getpetinfo)
-{
-	TBL_PC *sd=script_rid2sd(st);
+ *--------------------------------------- = script_rid2sd(st);
 	TBL_PET *pd;
-	int type=script_getnum(st,2);
+	int type = script_getnum(st,2);
+
+	if( !sd || !sd->pd ) {
+		if( type == 2 ,2);
 	
 	if(!sd || !sd->pd) {
 		if (type == 2)
 			script_pushconststr(st,"null");
 		else
-			script_pushint(st,0);
+			script_pushint( type ) ;
 		return 0;
 	}
 	pd = sd->pd;
@@ -12734,19 +12748,20 @@ BUILDIN_FUNC(getpetinfo)
  * n -> 0:hom_id 1:class 2:name
  * 3:friendly 4:hungry, 5: rename flag.
  * 6: level
- *------------------------------------------*/
-BUILDIN_FUNC(gethominfo)
-{
-	TBL_PC *sd=script_rid2sd(st);
+ *--------------------------------------- = script_rid2sd(st);
 	TBL_HOM *hd;
-	int type=script_getnum(st,2);
+	int type = script_getnum(st,2);
 
-	hd = sd?sd->hd:NULL;
-	if(!hd) {
-		if (type == 2)
+	hd = sd ? sd->hd : NULL;
+	if( !hd ) {
+		if( type == 2 )
 			script_pushconststr(st,"null");
 		else
 			script_pushint(st,0);
+		return 0;
+	}
+
+	switch( type ) pushint(st,0);
 		return 0;
 	}
 
@@ -12771,31 +12786,22 @@ BUILDIN_FUNC(getmercinfo)
 {
 	int type, char_id;
 	struct map_session_data* sd;
-	struct mercenary_data* md;
-
-	type = script_getnum(st,2);
-
-	if( script_hasdata(st,3) )
-	{
+	struct mercen	if( script_hasdata(st,3) ) {
 		char_id = script_getnum(st,3);
-
-		if( ( sd = map_charid2sd(char_id) ) == NULL )
-		{
-			ShowError("buildin_getmercinfo: No such character (char_id=%d).\n", char_id);
+		if( ( sd = map_charid2sd(char_id) ) == NULL ) {
+			ShowError("buildin_getmercinfo: No such character (char_id=%d).\n",char_id);
 			script_pushnil(st);
 			return 1;
 		}
-	}
-	else
-	{
-		if( ( sd = script_rid2sd(st) ) == NULL )
-		{
+	} else {
+		if( ( sd = script_rid2sd(st) ) == NULL ) {
 			script_pushnil(st);
 			return 0;
 		}
 	}
 
-	md = ( sd->status.mer_id && sd->md ) ? sd->md : NULL;
+	md = (sd->status.mer_id && sd->md) ? sd->md : NULL;
+	switch( type ) sd->md ) ? sd->md : NULL;
 
 	switch( type )
 	{
@@ -12813,32 +12819,33 @@ BUILDIN_FUNC(getmercinfo)
 		case 6: script_pushint(st,md ? mercenary_get_lifetime(md) : 0); break;
 		case 7: script_pushint(st,md ? md->db->lv : 0); break;
 		default:
-			ShowError("buildin_getmercinfo: Invalid type %d (char_id=%d).\n", type, sd->status.char_id);
-			sSCRIPT_CMD_SUCCESSript_pushnil(st);
-			return 1;
+			ShowError("buildin_getype,sd->status.char_id);
+			script_pushnil(st);
+	mand '%s'\n", c	return SCRIPT_CMD_SUCCESSipt_reportsrc(st);
+		return 1;
 	}
 
 	return 0;
 }
 
-/*==========================================
- * Shows wether your inventory(and equips) contain
+/*==Shows wether your inventory(and equips) contain
+   selected card or not.
+   d equips) contain
    selected card or not.
 	checkequipedcard(4001);
  *------------------------------------------*/
-BUILDIN_FUNC(checkequipedcard)
-{
-	TBL_PC *sd=script_rid2sd(st);
+ = script_rid2sd(st);
 
-	if(sd){
-		int n,i,c=0;
-		c=script_getnum(st,2);
+	if( sd ) {
+		int n, i, c = 0;
 
-		for(i=0;i<MAX_INVENTORY;i++){
-			if(sd->status.inventory[i].nameid > 0 && sd->status.inventory[i].amount && sd->inventory_data[i]){
-				if (itemdb_isspecial(sd->status.inventory[i].card[0]))
+		c = script_getnum(st,2);
+		for( i = 0; i < MAX_INVENTORY; i++) {
+			if( sd->status.inventory[i].nameid > 0 && sd->status.inventory[i].amount && sd->inventory_data[i] ) {
+				if( itemdb_isspecial(sd->status.inventory[i].card[0]) )
 					continue;
-				for(n=0;n<sd->inventory_data[i]->slot;n++){
+				for( n = 0 ; n < sd->inventory_data[i]->slot; n++ ) {
+					if( sd->status.inventory[i].card[n] == c ) 
 					if(sd->status.inventory[i].card[n]==c){
 						script_pushint(st,1);
 						return 0;
@@ -12847,29 +12854,24 @@ BUILDIN_FUNC(checkequipedcard)
 		}
 	}
 	script_pushint(st,0);
-	return 0;
-}
-
-BUILDIN_FUNC(jump_zero)
-{
-	int sel;
-	sel=script_getnum(st,2);
-	if(!sel) {
+	retur
+	sel = script_getnum(st,2);
+	if( !sel ) {
 		int pos;
-		if( !data_islabel(script_getdata(st,3)) ){
+
+		if( !data_islabel(script_getdata(st,3)) ) {
 			ShowError("script: jump_zero: not label !\n");
-			st->state=END;
+			st->state = END;
 			return 1;
 		}
-
-		pos=script_getnum(st,3);
-SCRIPT_CMD_SUCCESS	st->pos=pos;
-		st->state=GOTO;
+		pos = script_getnum(st,3);
+		st->pos = pos;
+		st->state = GOTO;
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
-/*==========================================
+/*==========================================/*==========================================
  * movenpc [MouseJstr]
  *------------------------------------------*/
 BUILDIN_FUNC(movenpc)
@@ -12879,22 +12881,19 @@ BUILDIN_FUNC(movenpc)
 	int x,y;
 
 	npc = script_getstr(st,2);
-	x = script_getnum(st,3);
-	y = script_getnum(st,4);
-
-	if ((nd = npc_name2id(npc)) == NULL)
+	x = script_( (nd = npc_name2id(npc)) == NULL )
 		return -1;
 
-	if (script_hasdata(st,5))
-		nd->ud.dir = script_getnumSCRIPT_CMD_SUCCESSst,5) % 8;
-	npc_movenpc(nd, x, y);
-	return 0;
+	if( script_hasdata(st,5) )
+		nd->ud.dir = script_getnum(st,5)%8;
+	npc_movenpc(nd,x,y);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /*==========================================
- * message [MouseJstr]
- *------------------------------------------*/
-BUILDIN_FUNC(message)
+ * message=================================
+ * movenpc [MouseJstr]
+ *---------------essage)
 {
 	const char *msg,*player;
 	TBL_PC *pl_sd = NULL;
@@ -12902,28 +12901,31 @@ BUILDIN_FUNC(message)
 	player = script_getstr(st,2);
 	msg = script_getstr(st,3);
 
-	if((pl_sd=map_nick2sd((char *) player)) == NULL)
+	if( (pl_sd = map_nick2sd((char *)player)) == NULL )
 		return 0;
-	clSCRIPT_CMD_SUCCESSf_displaymessage(pl_sd->fd, msg);
+	clif_displaymessage(pl_sd->fd,msg);
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
-/*==========================================
+/*==========================================/*==========================================
  * npctalk (sends message to surrounding area)
  *------------------------------------------*/
 BUILDIN_FUNC(npctalk)
 {
-	const char* str;
-	char name[NAME_LENGTH], message[256];
+	const char* 	struct npc_data* nd = (struct npc_data *)map_id2bl(st->oid);
 
-	struct npc_data* nd = (struct npc_data *)map_id2bl(st->oid);
 	str = script_getstr(st,2);
+	if( nd ) {
+		safestrncpy(name,nd->name,sizeof(name));
+		strtok(name,"#"); //Discard extra name identifier if present
+		safesnprintf(message,sizeof(message),"%s : %s",name,str);
+		clif_disp_overhead(&nd->bl,message);
+	}
+	return SCRIPT_CMD_SUCCESS;
+}
 
-	if(nd) {
-		safestrncpy(name, nd->name, sizeof(name));
-		strtok(name, "#"); // discard extra name identifier if present
-		safesnprintf(message, sizeof(message), "%s : %s", name, str);	return SCRIPT_CMD_SUCCESSsp_overhead(&nd->bl, message);
+//Cad(&nd->bl, message);
 	}
 
 	return 0;
@@ -12933,7 +12935,7 @@ BUILDIN_FUNC(npctalk)
 BUILDIN_FUNC(npcspeed)
 {
 	struct npc_data* nd;
-	int speed;
+	int  speed;
 
 	speed = script_getnum(st,2);
 	nd =(stru {
@@ -12941,7 +12943,8 @@ BUILDIN_FUNC(npcspeed)
 		nd->ud.state.speed_changed = 1;
 	}
 
-	return SCRIPT_CMD_SUCCESSd->ud.state.speed_changed = 1;
+	return SCRIPT_CMD_SUCCESSd->u
+//Mate.speed_changed = 1;
 	}
 
 	return 0;
@@ -12952,8 +12955,8 @@ BUILDIN_FUNC(npcwalkto)
 	struct npc_data *nd = (struct npc_data *)map_id2bl(st->oid);
 	int x = 0, y = 0;
 
-	x = script_getnum(st,2);
-	y = script_getnum(st,3);
+	x = script_g nd ) {
+		if( !nd->status.hp getnum(st,3);
 
 	if(nd) {
 		if(!nd->status.hp)
@@ -12965,9 +12968,9 @@ BUILDIN_FUNC(npcwalkto)
 	return 0;
 }
 // stop an npc's movement [Valaris]
-BUILDIN_FUNC(npcstop)
-{
-	struct npc_data *nd=(struct npc_data *)map_id2bl(st->oid);	return SCRIPT_CMD_SUCCESS		unit_stop_walking(&nd->bl,1|4);
+ = (struct npc_data *)map_id2bl(st->oid);
+
+	if( nd truct npc_data *)map_id2bl(st->oid);	return SCRIPT_CMD_SUCCESS		unit_stop_walking(&nd->bl,1|4);
 
 	return 0;
 }
@@ -12976,25 +12979,22 @@ BUILDIN_FUNC(npcstop)
 /*==========================================
  * getlook char info. getlook(arg)
  *------------------------------------------*/
-BUILDIN_FUNC(getlook)
-{
-	int type,val;
-	TBL_PC *sd;
-	sd=script_rid2sd(st);
+BUILDIN_FUN = script_rid2sd(st);
 
-	type=script_getnum(st,2);
-	val=-1;
-	switch(type) {
-		case LOOK_HAIR:     	val=sd->status.hair; break; //1
-		case LOOK_WEAPON:   	val=sd->status.weapon; break; //2
-		case LOOK_HEAD_BOTTOM:	val=sd->status.head_bottom; break; //3
-		case LOOK_HEAD_TOP: 	val=sd->status.head_top; break; //4
-		case LOOK_HEAD_MID: 	val=sd->status.head_mid; break; //5
-		case LOOK_HAIR_COLOR:	val=sd->status.hair_color; break; //6
-		case LOOK_CLOTHES_COLOR:	val=sd->status.clothes_color; break; //7
-		case LOOK_SHIELD:   	val=sd->status.shield; break; //8
+	type = script_getnum(st,2);
+	val = -1;
+	switch( type ) {
+		case LOOK_HAIR:     	val = sd->status.hair; break; //1
+		case LOOK_WEAPON:   	val = sd->status.weapon; break; //2
+		case LOOK_HEAD_BOTTOM:	val = sd->status.head_bottom; break; //3
+		case LOOK_HEAD_TOP: 	val = sd->status.head_top; break; //4
+		case LOOK_HEAD_MID: 	val = sd->status.head_mid; break; //5
+		case LOOK_HAIR_COLOR:	val = mid; break; //5
+		case LOOK_HAIR_COLOR:	val=sd->status.hair_colo = sd->status.clothes_color; break; //7
+		case LOOK_SHIELD:   	val = sd->status.shield; break; //8
 		case LOOK_SHOES:    	break; //9
-		case LOOK_ROBE:     	val=sd->status.robe; breakSCRIPT_CMD_SUCCESS //12
+		case LOOK_ROBE:     	val = sd->status.robe; break; //12
+	}E:     	val=sd->status.robe; breakSCRIPT_CMD_SUCCESS //12
 	}
 
 	script_pushint(st,val);
@@ -13006,14 +13006,14 @@ BUILDIN_FUNC(getlook)
  *------------------------------------------*/
 BUILDIN_FUNC(getsavepoint)
 {
-	TBL_PC* sd;
-	int type;
-
-	sd = script_rid2sd(st);
-	if (sd == NULL) {
+	TBL_PC* ( sd == NULL ) {
 		script_pushint(st,0);
 		return 0;
 	}
+
+	type = script_getnum(st,2);
+
+	switch( type 
 
 	type = script_getnum(st,2);
 
@@ -13051,135 +13051,132 @@ BUILDIN_FUNC(getsavepoint)
   *                     -1       - some error, MapName$,MapX,MapY contains unknown value.
   *------------------------------------------*/
 BUILDIN_FUNC(getmapxy)
-{
-	struct block_list *bl = NULL;
-	TBL_PC *sd=NULL;
-
+ = NULL;
 	int num;
 	const char *name;
 	char prefix;
-
 	int x,y,type;
 	char mapname[MAP_NAME_LENGTH];
 
-	if( !data_isreference(script_getdata(st,2)) ){
+	if( !data_isreference(script_getdata(st,2)) ) f( !data_isreference(script_getdata(st,2)) ){
 		ShowWarning("script: buildin_getmapxy: not mapname variable\n");
 		script_pushint(st,-1);
 		return 1;
 	}
-	if( !data_isreference(script_getdata(st,3)) ){
+	i f( !data_isreference(script_getdata(st,3)) ){
 		ShowWarning("script: buildin_getmapxy: not mapx variable\n");
 		script_pushint(st,-1);
 		return 1;
 	}
-	if( !data_isreference(script_getdata(st,4)) ){
+	i f( !data_isreference(script_getdata(st,4)) ){
 		ShowWarning("script: buildin_getmapxy: not mapy variable\n");
-		script_pushint(st,-1);
-		return 1;
-	}
-
-	// Possible needly check function parameters on C_STR,C_INT,C_INT
-	type=script_getnum(st,5);
-
-	switch (type){
+Possible needly check function parameters on C_STR,C_INT,C_INT
+	type = script_getnum(st,5);
+	switch( type ) {
 		case 0:	//Get Character Position
 			if( script_hasdata(st,6) )
-				sd=map_nick2sd(script_getstr(st,6));
+				sd = map_nick2sd(script_getstr(st,6));
 			else
+				sd = script_rid2sd(st);
+
+			if( sd 			else
 				sd=script_rid2sd(st);
 
 			if (sd)
 				bl = &sd->bl;
 			break;
 		case 1:	//Get NPC Position
-			if( script_hasdata(st,6) ) {
-				struct npc_data *nd;
-				nd=npc_name2id(script_getstr(st,6));
-				if (nd)
+			if( script_hasda = npc_name2id(script_getstr(st,6));
+				if( nd )
 					bl = &nd->bl;
 			} else //In case the origin is not an npc?
-				bl=map_id2bl(st->oid);
+				bl = map_id2bl(st->oid);
 			break;
 		case 2:	//Get Pet Position
-			if(script_hasdata(st,6))
-				sd=map_nick2sd(script_getstr(st,6));
+			if( script_hasdata(st,6) )
+				sd = map_nick2sd(script_getstr(st,6));
 			else
-				sd=script_rid2sd(st);
+				sd = script_rid2sd(st);
+
+			if( sd && sd->pd 		sd=script_rid2sd(st);
 
 			if (sd && sd->pd)
 				bl = &sd->pd->bl;
 			break;
 		case 3:	//Get Mob Position
-			break; //Not supported?
-		case 4:	//Get Homun Position
-			if(script_hasdata(st,6))
-				sd=map_nick2sd(script_getstr(st,6));
+			break; //Not supp script_hasdata(st,6) )
+				sd = map_nick2sd(script_getstr(st,6));
 			else
-				sd=script_rid2sd(st);
+				sd = script_rid2sd(st);
 
-			if (sd && sd->hd)
+			if( sd && sd->hd )
 				bl = &sd->hd->bl;
 			break;
 		case 5: //Get Mercenary Position
-			if(script_hasdata(st,6))
-				sd=map_nick2sd(script_getstr(st,6));
+			if( script_hasdata(st,6) )
+				sd = map_nick2sd(script_getstr(st,6));
 			else
-				sd=script_rid2sd(st);
+				sd = script_rid2sd(st);
 
-			if (sd && sd->md)
+			if( sd && sd->md )
 				bl = &sd->md->bl;
 			break;
 		case 6: //Get Elemental Position
-			if(script_hasdata(st,6))
-				sd=map_nick2sd(script_getstr(st,6));
+			if( script_hasdata(st,6) )
+				sd = map_nick2sd(script_getstr(st,6));
 			else
-				sd=script_rid2sd(st);
+				sd = script_rid2sd(st);
+
+			if( sd && sd->ed 		sd=script_rid2sd(st);
 
 			if (sd && sd->ed)
 				bl = &sd->ed->bl;
 			break;
 		default:
-			ShowWarning("script: buildin_getmapxy: Invalid type %d\n", type);
+			ShowWarning("stype);
 			script_pushint(st,-1);
 			return 1;
 	}
-	if (!bl) { //No object found.
+	if( !bl ) { //No object found.
 		script_pushint(st,-1);
 		return 0;
 	}
 
-	x= bl->x;
-	y= bl->y;
-	safestrncpy(mapname, map[bl->m].name, MAP_NAME_LENGTH);
-	
-	//Set MapName$
-	num=st->stack->stack_data[st->start+2].u.num;
-	name=get_str(num&0x00ffffff);
-	prefix=*name;
+	x = bl->x;
+	y = bl->y;
+	safestrncpy(mapname,map[bl->m].name,MAP_NAME_LENGTH);
 
-	if(not_server_variable(prefix))
-		sd=script_rid2sd(st);
+	//Set MapName$
+	num = st->stack->stack_data[st->start + 2].u.num;
+	name = get_str(num&0x00ffffff);
+	prefix = *name;
+
+	if( not_server_variable(prefix) )
+		sd = script_rid2sd(st);
 	else
-		sd=NULL;
+		sd = NULL;
 	set_reg(st,sd,num,name,(void*)mapname,script_getref(st,2));
 
 	//Set MapX
-	num=st->stack->stack_data[st->start+3].u.num;
-	name=get_str(num&0x00ffffff);
-	prefix=*name;
+	num = st->stack->stack_data[st->start + 3].u.num;
+	name = get_str(num&0x00ffffff);
+	prefix = *name;
 
-	if(not_server_variable(prefix))
-		sd=script_rid2sd(st);
+	if( not_server_variable(prefix) )
+		sd = script_rid2sd(st);
 	else
-		sd=NULL;
+		sd = NULL;
 	set_reg(st,sd,num,name,(void*)__64BPRTSIZE(x),script_getref(st,3));
 
 	//Set MapY
-	num=st->stack->stack_data[st->start+4].u.num;
-	name=get_str(num&0x00ffffff);
-	prefix=*name;
+	num = st->stack->stack_data[st->start + 4].u.num;
+	name = get_str(num&0x00ffffff);
+	prefix = *name;
 
-	if(not_server_variable(prefix))
+	if( not_server_variable(prefix) )
+		sd = script_rid2sd(st);
+	else
+		sd = prefix))
 		sd=script_rid2sd(st);
 	else
 		sd=NULL;
@@ -13206,39 +13203,36 @@ BUILDIN_FUNC(logmes)
 	log_npc(sd,str);
 	return 0;
 }
-
-BUILDIN_FUNC(summon)
-{
-	int _class, timeout=0;
-	const char *str,*event="";
+ = 0;
+	const char *str,*event = "";
 	TBL_PC *sd;
 	struct mob_data *md;
 	int tick = gettick();
 
-	sd=script_rid2sd(st);
-	if (!sd) return 0;
-	
-	str	=script_getstr(st,2);
-	_class=script_getnum(st,3);
+	sd = script_rid2sd(st);
+	if( !sd ) return 0;
+
+	str	= script_getstr(st,2);
+	_class = script_getnum(st,3);
 	if( script_hasdata(st,4) )
-		timeout=script_getnum(st,4);
+		timeout = script_getnum(st,4);
 	if( script_hasdata(st,5) ) {
-		event=script_getstr(st,5);
+		event = script_getstr(st,5);
+		check_event(st,vent=script_getstr(st,5);
 		check_event(st, event);
 	}
 
-	clif_skill_poseffect(&sd->bl,AM_CALLHOMUN,1,sd->bl.x,sd->bl.y,tick);
-
-	md = mob_once_spawn_sub(&sd->bl, sd->bl.m, sd->bl.x, sd->bl.y, str, _class, event, SZ_SMALL, AI_NONE);
+	clif_skill_poseffect(&sd->bl,AM_CALLHOMUN,1,sd->bl.x,sd->blsd->bl.m,sd->bl.x,sd->bl.y,str,_class,event,SZ_SMALL,AI_NONE);
+	if( md ) {
+		md->master_id = SMALL, AI_NONE);
 	if (md) {
 		md->master_id=sd->bl.id;
 		md->special_state.ai = AI_ATTACK;
-		if( md->deletetimer != INVALID_TIMER )
-			delete_timer(md->deletetimer, mob_timer_delete);
-		md->deletetimer = add_timer(tick+(timeout>0?timeout:60000),mob_timer_delete,md->bl.id,0);
+		if( md->deletetimer != INVAmob_timer_delete);
+		md->deletetimer = add_timer(tick + (timeout > 0 ? timeout : 60000),mob_timer_delete,md->bl.id,0);
+		mob_spawn,mob_timer_delete,md->bl.id,0);
 		mob_spawn (md); //Now it is ready for spawning.
-		clif_specialeffect(&md->bl,344,AREA);
-		sc_start4(NULL, &md->bl, SC_MODECHANGE, 100,SCRIPT_CMD_SUCCESS1, 0, MD_AGGRESSIVE, 0, 60000);
+		clif_specia&md->bl,SC_MODECHANGE,100,1,0,MD_AGGRESSIVE,0,SC_MODECHANGE, 100,SCRIPT_CMD_SUCCESS1, 0, MD_AGGRESSIVE, 0, 60000);
 	}
 	return 0;
 }
@@ -14174,32 +14168,31 @@ BUILDIN_FUNC(strpos) {
 	size_t len;
 
 	if( script_hasdata(st,4) )
-		i = script_getnum(st,4);
-	else
-		i = 0;
-
-	if ( needle[0] == '\0' ) {
-		script_pushint(st, -1);
+		( needle[0] == '\0' ) {
+		script_pushint(st,-1);
 		return 0;
 	}
 
 	len = strlen(haystack);
-	for ( ; i < len; ++i ) {
+	for( ; i < len; ++i ) {
+		if( haystack[i] == *needle ) {
+			//M {
 		if ( haystack[i] == *needle ) {
-			// matched starting char -- loop through remaining chars
-			const char *h, *n;
-			for ( h = &haystack[i], n = needle; *h && *n; ++h, ++n ) {
-				if ( *h != *n ) {
+			// matched starting char -- loop th
+			for( h = &haystack[i], n = needle; *h && *n; ++h, ++n ) {
+				if( *h != *n ) {
 					break;
 				}
 			}
-			if ( !*n ) { // matched all of 'needle' to null termination
-				script_pushint(st, i);
+			if( !*n ) { //Matched all of 'needle' to null termination
+				script_pushint(st,i);
 				return 0;
-	SCRIPT_CMD_SUCCESS	}
+			}
 		}
 	}
-	script_pushint(st, -1);
+	script_pushint(st,-ag != 0) mapSCRIPT_CMD_SUCCESS] ) : 0;
+
+	script_pushint(st,val);
 	return 0;
 }
 
@@ -14211,68 +14204,60 @@ BUILDIN_FUNC(strpos) {
 // instances as specified in <count>. By default will be case
 // sensitive.
 //---------------------------------------------------------------
-BUILDIN_FUNC(replacestr)
-{
-	const char *input = script_getstr(st, 2);
+BUILDIN_FUNC(replaces2);
+	const char *find = script_getstr(st,3);
+	const char *replace = script_getstr(st,4 2);
 	const char *find = script_getstr(st, 3);
-	const char *replace = script_getstr(st, 4);
-	size_t inputlen = strlen(input);
-	size_t findlen = strlen(find);
-	struct StringBuf output;
+	size_t inputlen = strlstruct StringBuf output;
 	bool usecase = true;
-
 	int count = 0;
 	int numFinds = 0;
 	int i = 0, f = 0;
 
-	if(findlen == 0) {
+	if( findlen == 0 ) {
 		ShowError("script:replacestr: Invalid search length.\n");
 		st->state = END;
 		return 1;
 	}
 
-	if(script_hasdata(st, 5)) {
-		if( !script_isstring(st,5) )
-			usecase = script_getnum(st, 5) != 0;
-		else {
-			ShowError("script:replacestr: Invalid usecase value. Expected int got string\n");
-			st->state = END;
-			return 1;
-		}
-	}
+	if( script_hasdata(st,5) ) {
+		struct script_data *data = script_getdata(st,5);
 
-	if(script_hasdata(st, 6)) {
-		count = script_getnum(st, 6);
+		get_val(st,data); //Convert into value in case of a variable
+		if( !data_isstring(data) )
+			usecase = script_getnum(st,5) != 0;
+		else {
+			ShowError("script:replace4) != 0;
+		else {
+			ShowError("script:countstr: Invalid usecase value. Expected int got string\n")if( script_hasdata(st,6) ) {
+		count = script_getnum(st,6);
+		if( count == 0 ount = script_getnum(st, 6);
 		if(count == 0) {
 			ShowError("script:replacestr: Invalid count value. Expected int got string\n");
 			st->state = END;
-			return 1;
-		}
-	}
-
-	StringBuf_Init(&output);
-
-	for(; i < inputlen; i++) {
-		if(count && count == numFinds) {	//found enough, stop looking
+			return ; i < inputlen; i++ ) {
+		if( count && count == numFinds ) //Found enough, stop looking
 			break;
-		}
 
-		for(f = 0; f <= findlen; f++) {
-			if(f == findlen) { //complete match
+		for( f = 0; f <= findlen; f++ ) {
+			if( f == findlen ) { //Complete match
 				numFinds++;
-				StringBuf_AppendStr(&output, replace);
-
+				StringBuf_AppendStr(&output,replace);
 				i += findlen - 1;
 				break;
 			} else {
-				if(usecase) {
-					if((i + f) > inputlen || input[i + f] != find[f]) {
-						StringBuf_Printf(&output, "%c", input[i]);
+				if( usecase ) {
+					if( (i + f) > inputlen || input[i + f] != find[f] ) {
+						StringBuf_Printf(&output,"%c",input[i]);
 						break;
 					}
 				} else {
-					if(((i + f) > inputlen || input[i + f] != find[f]) && TOUPPER(input[i+f]) != TOUPPER(find[f])) {
-						StringBuf_Printf(&output, "%c", input[i]);
+					if( );
+						break;
+					}
+				} else {
+					if(((i + f) > inputlen || + f]) != TOUPPER(find[f]) ) {
+						StringBuf_Printf(&output,"%c",input[i]);
 						break;
 					}
 				}
@@ -14280,9 +14265,11 @@ BUILDIN_FUNC(replacestr)
 		}
 	}
 
-	//append excess after enough found
-	if(i < inputlen)
-		StringBuf_AppendStr(&output, &(input[i]));
+	//Append excess after enough found
+	if( i < inputlen )
+		StringBuf_AppendStr(&output,&(input[i]));
+
+	script_pushstrcopy(st,put, &(input[i]));
 
 	script_pushstrcopy(st, StringBuf_Value(&outSCRIPT_CMD_SUCCESSut));
 	StringBuf_Destroy(&output);
@@ -14300,43 +14287,44 @@ BUILDIN_FUNC(countstr)
 	const char *input = script_getstr(st, 2);
 	const char *find = script_getstr(st, 3);
 	size_t inputlen = strlen(input);
-	size_t findlen = strlen(find);
-	bool usecase = true;
-
-	int numFinds = 0;
+	size_t fi	int numFinds = 0;
 	int i = 0, f = 0;
 
-	if(findlen == 0) {
+	if( findlen == 0 ) {
 		ShowError("script:countstr: Invalid search length.\n");
 		st->state = END;
 		return 1;
 	}
 
-	if(script_hasdata(st, 4)) {
-		if( !script_isstring(st,4) )
+	if( script_hasdata(st,4) ) {
+		struct script_data *data = script_getdata(st,4);
+
+		get_val(st, data); //Convert into value in case of a variable
+    if( !data_isstring(data) )
+			usecase = script_getnum(st,ring(st,4) )
 			usecase = script_getnum(st, 4) != 0;
 		else {
 			ShowError("script:countstr: Invalid usecase value. Expected int got string\n");
-			st->state = END;
-			return 1;
-		}
-	}
-
-	for(; i < inputlen; i++) {
-		for(f = 0; f <= findlen; f++) {
+		 ; i < inputlen; i++ ) {
+		for( f = 0; f <= findlen; f++ ) {
+			if( f == findlen ) { //C<= findlen; f++) {
 			if(f == findlen) { //complete match
 				numFinds++;
-				i += findlen - 1;
-				break;
-			} else {
-				if(usecase) {
-					if((i + f) > inputlen || input[i + f] != find[f]) {
+				i += usecase ) {
+					if( (i + f) > inputlen || input[i + f] != find[f] )
+						break;
+				} else {
+					if( );
 						break;
 					}
 				} else {
-					if(((i + f) > inputlen || input[i + f] != find[f]) && TOUPPER(input[i+f]) != TOUPPER(find[f])) {
+					if(((i + f) > inputlen || + f]) != TOUPPER(find[f]) )
 						break;
-					}
+				}
+			}
+		}
+	}
+	script_pushint(st,				}
 				}
 			}
 		SCRIPT_CMD_SUCCESS
@@ -14380,9 +14368,12 @@ BUILDIN_FUNC(setnpcdisplay)
 		return 1;
 	}
 
-	nd = npc_name2id(name);
-	if( nd == NULL ) { // Not found
+	ndNot found
 		script_pushint(st,1);
+		return 0;
+	}
+
+	//		script_pushint(st,1);
 		return 0;
 	}
 
@@ -14396,8 +14387,8 @@ BUILDIN_FUNC(setnpcdisplay)
 		size = -1;
 
 	if( class_ != -1 && nd->class_ != class_ )
-		npc_setclass(nd, class_);
-	else if( size != -1 ) { // Required to update the visual size
+		npc_setclRequired to update the visual size
+		clif_clearunit_area(&nd->bl, visual size
 		clif_clearunit_area(&nd->bl, CLR_OUTSIGHT);
 		clif_spawn(&SCRIPT_CMD_SUCCESSd->bl);
 	}
@@ -14410,7 +14401,7 @@ BUILDIN_FUNC(atoi)
 {
 	const char *value;
 	value = script_getstr(st,2SCRIPT_CMD_SUCCESS;
-	script_pushint(st,atoi(value));
+	scriC_pushint(st,atoi(value));
 	return 0;
 }
 
@@ -14421,7 +14412,7 @@ BUILDIN_FUNC(compare)
 	const char *cmpstring;
 	message = script_getstr(st,2);
 	cmpstring = script_getstr(st,3);
-	script_pushint(st,(stSCRIPT_CMD_SUCCESSistr(message,cmpstring) != NULL));
+	script_pushint(st,(stSCRIPT_CMD_SUCCESSistr(mesage,cmpstring) != NULL));
 	return 0;
 }
 
@@ -14454,7 +14445,7 @@ BUILDIN_FUNC(distance)
 	x1 = script_getnum(st,4);
 	y1 = script_getnum(st,5);
 
-	script_puSCRIPT_CMD_SUCCESShint(st,distance_xy(x0,y0,x1,y1));
+	script_puSCRIPT_CMD_SUCCESShintst,distance_xy(x0,y0,x1,y1));
 	return 0;
 }
 
@@ -14465,40 +14456,36 @@ BUILDIN_FUNC(md5)
 	const char *tmpstr;
 	char *md5str;
 
-	tmpstr = script_getstr(st,2);
-	md5str = (char *)aMalloc((32+1)*sizeof(char));
-	MD5_String(tmpstr, mdSCRIPT_CMD_SUCCESSstr);
-	script_pushstr(st, md5str);
-	return 0;
+	tmpstr = script + 1) * sizeof(char));
+	MD5_String(tmpstr,md5str);
+	script_pushstr(st,md5str);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 // [zBuffer] List of dynamic var commands --->
-
 BUILDIN_FUNC(setd)
 {
-	TBL_PC *sd=NULL;
+	TBL_PC *sd = NULL;
 	char varname[100];
 	const char *buffer;
 	int elem;
-	buffer = script_getstr(st, 2);
+	buffer = script_getstr(st,2);
 
-	if(sscanf(buffer, "%99[^[][%d]", varname, &elem) < 2)
+	if( sscanf(buffer,"%99[^[][%d]",varname,&elem) < 2 )
 		elem = 0;
 
-	if( not_server_variable(*varname) )
-	{
+	if( not_server_variable(*varname) ) {
 		sd = script_rid2sd(st);
-		if( sd == NULL )
-		{
-			ShowError("script:setd: no player attached for player variable '%s'\n", buffer);
+		if( sd == NULL ) {
+			ShowError("script:setd: no player attached for player variable '%s'\n",buffer);
 			return 0;
 		}
 	}
 
-	if( is_string_variable(varname) ) {
-		setd_sub(st, sd, varname, elem, (void *)script_getstr(st, 3), NULL);
-	} else {
-		setd_sub(st, sd, varname, elem, (void *)__64BPRTSIZESCRIPT_CMD_SUCCESSscript_getnum(st, 3)), NULL);
+	if( is_string_variable(varname) )
+		setd_sub(st,sd,varname,elem,(void *)script_getstr(st,3),NULL);
+	else
+		setd_sub(st,sd,varname,elem,(void *)__64BPRTSIZE(script_getnum(st,3)),NULL);_64BPRTSIZESCRIPT_CMD_SUCCESSscript_getnum(st, 3)), NULL);
 	}
 	
 	return 0;
@@ -14510,57 +14497,66 @@ int buildin_query_sql_sub(struct script_state* st, Sql* handle)
 	TBL_PC* sd = NULL;
 	const char* query;
 	struct script_data* data;
-	const char* name;
-	int max_rows = SCRIPT_MAX_ARRAYSIZE; // maximum number of rows
+	const char* naMaximum number of rows
+	int num_vars;
+	int num_cols;
+
+	//Cof rows
 	int num_vars;
 	int num_cols;
 
 	// check target variables
-	for( i = 3; script_hasdata(st,i); ++i ) {
-		data = script_getdata(st, i);
+	for( i = 3; script_hasdati);
+		if( data_isreference(data) ) { //It, i);
 		if( data_isreference(data) ) { // it's a variable
 			name = reference_getname(data);
-			if( not_server_variable(*name) && sd == NULL ) { // requires a player
+			if( notRequires a player
 				sd = script_rid2sd(st);
+				if( sd == NULL ) { //Nript_rid2sd(st);
 				if( sd == NULL ) { // no player attached
 					script_reportdata(data);
 					st->state = END;
 					return 1;
 				}
 			}
-			if( not_array_variable(*name) )
+			if( n //Nrray_variable(*name) )
 				max_rows = 1;// not an array, limit to one row
 		} else {
 			ShowError("script:query_sql: not a variable\n");
 			script_reportdata(data);
-			st->state = END;
-			return 1;
+			st->state = END;			return 1;
 		}
 	}
 	num_vars = i - 3;
 
 	// Execute the query
-	query = script_getstr(st,2);
-
-	if( SQL_ERROR == Sql_QueryStr(handle, query) ) {
+	query = script_getstr(stquery) ) {
 		Sql_ShowDebug(handle);
-		script_pushint(st, 0);
+		script_pushint(st,0);
 		return 1;
 	}
 
-	if( Sql_NumRows(handle) == 0 ) { // No data received
+	if( Sql_NumRows(handle) == 0 ) { //No data received
 		Sql_FreeResult(handle);
-		script_pushint(st, 0);
+		script_pushint(st,0);
+		return 0;
+	}
+
+	//	script_pushint(st, 0);
 		return 0;
 	}
 
 	// Count the number of columns to store
 	num_cols = Sql_NumColumns(handle);
 	if( num_vars < num_cols ) {
-		ShowWarning("script:query_sql: Too many columns, discarding last %u columns.\n", (unsigned int)(num_cols-num_vars));
+		ShowWarning("script:query_sql: Too m(unsigned int)(num_cols - ast %u columns.\n", (unsigned int)(num_cols-num_vars));
 		script_reportsrc(st);
 	} else if( num_vars > num_cols ) {
-		ShowWarning("script:query_sql: Too many variables (%u extra).\n", (unsigned int)(num_vars-num_cols));
+		ShowWarning("script:q(unsigned int)(num_vars - num_cols));
+		script_reportsrc(st);
+	}
+
+	//num_cols));
 		script_reportsrc(st);
 	}
 
@@ -14569,24 +14565,24 @@ int buildin_query_sql_sub(struct script_state* st, Sql* handle)
 		for( j = 0; j < num_vars; ++j ) {
 			char* str = NULL;
 
-			if( j < num_cols )
-				Sql_GetData(handle, j, &str, NULL);
+	j,&str,NULL);
 
-			data = script_getdata(st, j+3);
+			data = script_getdata(st,j + 3);
 			name = reference_getname(data);
 			if( is_string_variable(name) )
-				setd_sub(st, sd, name, i, (void *)(str?str:""), reference_getref(data));
+				setd_sub(st,sd,name,i,(void *)(str ? str : ""),reference_getref(data));
 			else
-				setd_sub(st, sd, name, i, (void *)__64BPRTSIZE((str?atoi(str):0)), reference_getref(data));
+				setd_sub(st,sd,name,i,(void *)__64BPRTSIZE((str ? atoi(str) : 0)),i, (void *)__64BPRTSIZE((str?atoi(str):0)), reference_getref(data));
 		}
 	}
 	if( i == max_rows && max_rows < Sql_NumRows(handle) ) {
-		ShowWarning("script:query_sql: Only %d/%u rows have been stored.\n", max_rows, (unsigned int)Sql_NumRows(handle));
+		ShowWarning("script:quermax_rows,(unsigned int)Sql_NumRows(handle));
 		script_reportsrc(st);
 	}
 
-	// Free data
-	Sql_Freturn SCRIPT_CMD_SUCCESSandle);
+	//Free data
+	Sql_FreeResult(handle);
+	script_pushint(st,Sql_Freturn SCRIPT_CMD_SUCCESSandle);
 	script_pushint(st, i);
 		
 	return 0;
@@ -14595,13 +14591,13 @@ int buildin_query_sql_sub(struct script_state* st, Sql* handle)
 BUILDIN_FUNC(query_sql) {
 #ifdef BETA_THREAD_TEST
 	if( st->state != RERUNLINE ) {
-		queryThread_add(st,false);
+		queryThr /* Wadd(st,false);
 
 		st->state = RERUNLINE;/* will continue when the query is finished running. */
 	} else
 		st->state = RUN;
 		
-	return 0;
+	retur 0;
 #else
 	return buildin_query_sql_sub(st, mmysql_handle);
 #endif
@@ -14609,7 +14605,7 @@ BUILDIN_FUNC(query_sql) {
 
 BUILDIN_FUNC(query_logsql) {
 	if( !log_config.sql_logs ) {// logmysql_handle == NULL
-		ShowWarning("buildin_query_logsql: SQL logs are disabled, query '%s' will not be executed.\n", script_getstr(st,2));
+		ShowWarning("buildin_query_logsql: SQL logs are diabled, query '%s' will not be executed.\n", script_getstr(st,2));
 		script_pushint(st,-1);
 		return 1;
 	}
@@ -14621,7 +14617,7 @@ BUILDIN_FUNC(query_logsql) {
 	} else
 		st->state = RUN;
 	
-	return 0;
+	retur 0;
 #else
 	return buildin_query_sql_sub(st, logmysql_handle);
 #endif
@@ -14635,9 +14631,9 @@ BUILDIN_FUNC(escape_sql)
 	size_t len;
 
 	str = script_getstr(st,2);
-	len = strlen(str);
-	esc_str = (char*)aMalloc(len*2+1);
-	Sql_EscapeStringLen(mmysql_handle, esc_str, str, SCRIPT_CMD_SUCCESSen);
+	len  * 2 + 1);
+	Sql_EscapeStringLen(mmysql_handle,esc_str,str,len);
+	script_pushstr(st,le, esc_str, str, SCRIPT_CMD_SUCCESSen);
 	script_pushstr(st, esc_str);
 	return 0;
 }
@@ -14645,16 +14641,13 @@ BUILDIN_FUNC(escape_sql)
 BUILDIN_FUNC(getd)
 {
 	char varname[100];
-	const char *buffer;
-	int elem;
+	const char *buf2);
 
-	buffer = script_getstr(st, 2);
-
-	if(sscanf(buffer, "%[^[][%d]", varname, &elem) < 2)
+	if(sscanf(buffer,"%[^[][%d]",varname,&elem) < 2)
 		elem = 0;
 
 	// Push the 'pointer' so it's more flexible [Lance]
-	push_val(st->stack, C_NAME, referSCRIPT_CMD_SUCCESSnce_uid(add_str(varname), elem));
+	push_val(st->stack,C_NAME,reference_uid(add_str(varname),ck, C_NAME, referSCRIPT_CMD_SUCCESSnce_uid(add_str(varname), elem));
 
 	return 0;
 }
@@ -14668,14 +14661,14 @@ BUILDIN_FUNC(callshop)
 	sd = script_rid2sd(st);
 	if( !sd ) {
 		script_pushint(st,0);
-		return 0;
+	return 0;
 	}
 	shopname = script_getstr(st, 2);
 	if( script_hasdata(st,3) )
 		flag = script_getnum(st,3);
 	nd = npc_name2id(shopname);
 	if( !nd || nd->bl.type != BL_NPC || (nd && nd->subtype != ITEMSHOP && nd->subtype != POINT (nd->subtype != SHOP && nd->subtype != CASHSHOP) ) {
-		ShowError("buildin_callshop: Shop [%s] not found (or NPC is not shop type)\n", shopna
+		ShowError("buildin_callshop: Shop %s] not found (or NPC is not shop type)\n", shopna
 	if( nd->subtype == SHOP || nd->subtype == ITEMSHOP || nd->subtype == POINTst,0);
 		return 1;
 	}
@@ -14687,20 +14680,24 @@ BUILDIN_FUNC(callshop)
 		switch( flag ) {
 			case 1: npc_buysellsel(sd,nd->bl.id,0); break; //Buy window
 			case 2: npc_buysellsel(sd,nd->bl.id,1); break; //Sell window
-			default: clif_npcbuysell(sd,nd->bl.id); break; //Show menu
-		}
-	} else
-		clif_cashshop_show(sd, nd);
+			default: clif_npcbuysell(sd,nd->bl.id); break; //Shnd);
 
-	sd->npc_shopid SCRIPT_CMD_SUCCESS nd->bl.id;
+	sd->npc_shopid = nd->bl.id;
 	script_pushint(st,1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(npcshopst,1);
 	return 0;
 }
 
-BUILDIN_FUNC(npcshopitem)
+BUILDIN_FUNC(npcshopdelitem)
 {
-	const char* npcname = script_getstr(st, 2);
-	struct npc_data* nd = npc_name2id(npcnnd->subtype != SHOP && nd->subtype != CASHSHOP && nd->subtype != ITEMSHOP && nd->subtype != POINTSHOP) )
+	const char* npcname = script_getstr(st,2);
+	sint n, i;
+	int amount;
+
+	if( !nd || (nd->subtype != SHOP && nd->subtype != CASHSHOP && nd->subtype != ITEMSHOP && nd->subtype != POINTSHOP) )
 	{ //Not found.
 		script_pushint(st,0);
 		return 0;
@@ -14709,11 +14706,8 @@ BUILDIN_FUNC(npcshopitem)
 	//Get the count of new entries
 	amount = (script_lastdata(st) - 2) / 2;
 
-	//G
-	amount = (script_lastdata(st)-2)/2;
-
-	// generate new shop item list
-	RECREATE(nd->u.shop.shop_item, struct npc_item_list, amo += 2 ) ; n < nd->u.shop.count+amount; n++, i+=2 )
+	//Generate new shop item list
+	RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.shop_item, struct npc_item_list, amo += 2 ) ; n < nd->u.shop.count+amount; n++, i+=2 )
 	{
 		nd->u.shop.shop_item[n].nameid = script_getnum(st,i);
 		nd->u. + 1);
@@ -14746,8 +14740,7 @@ BUILDIN_FUNC(npcshopdelitem)
 	//A
 	amount = (script_lastdata(st)-2)/2;
 
-	// append new items to existing shop item list
-	RECREATE(nd->u.shop.shop_ + amount);
+	// append new items to existing shstruct npc_item_list,nd->u.shop.shop_ + amount);
 	for( n = nd->u.shop.count, i = 3; n < nd->u.shop.count+amount; n++, i += 2 ) ; n < nd->u.shop.count+amount; n++, i+=2 )
 	{
 		nd->u.shop.shop_item[n].nameid = script_getnum(st,i);
@@ -14779,14 +14772,14 @@ BUILDIN_FUNC(npcshopdelitem)
 	//Remove specified items from the shop item list
 	for( i = 3; i < 3 + amount; i++ ) {
 		nameid = script_getnum(st,i);
-		ARR_FIND(0, size, n, nd->u.shop.shop_item[n].nameid == nameid);
+		ARR_FIND(0,size,n,nd->u.shop.shop_item[n].nameid == nameid);
 		if( n < size ) {
-			memmove(&nd->u.shop.shop_item[n], &nd->u.shop.shop_item[n + 1], sizeof(nd->u.shop.shop_item[0]) * (size - n+1], sizeof(nd->u.shop.shop_item[0])*(size-n));
+			memmove(&nd->u.shop.shop_item[n],&nd->u.shop.shop_item[n + 1],sizeof(nd->u.shop.shop_item[0]) * (size - n));
 			size--;
 		}
 	}
 
-	RECREATE(nd->u.shop.shop_item, struct npc_item_list, size);
+	RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.shop_item, struct npc_item_list, size);
 	nd->u.shop.coSCRIPT_CMD_SUCCESSnt = size;
 
 	script_pushint(st,1);
@@ -14871,39 +14864,37 @@ BUILDIN_FUNC(setitemscript)
  * is updated to the new rate.  Rate cannot exceed 10000
  * Returns 1 if succeeded (added/updated a mob drop)
  *-------------------------------------------------------*/
-BUILDIN_FUNC(addmonsterdrop)
-{
-	struct mob_db *mob;
-	int item_id,rate,i,c = 0;
+BUILDIN_Fstruct script_data *data;
+	int item_id, rate, i, c = 0;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	if( data_isstring(data) ;
+	int item_id,i;
 
 	if(script_isstring(st,2))
 		mob = mob_db(mobdb_searchname(script_getstr(st,2)));
 	else
-		mob = mob_db(script_getnum(st,2));
+		mob = mob_db(script_getn	rate = script_getnum(st,4);
 
-	item_id = script_getnum(st,3);
-	rate = script_getnum(st,4);
-
-	if(!itemdb_exists(item_id)) {
+	if( !itemdb_exists(item_id) ) {
 		ShowError("addmonsterdrop: Nonexistant item %d requested.\n", item_id );
 		return 1;
 	}
 
-	if(mob) { //We got a valid monster, check for available drop slot
-		for(i = 0; i < MAX_MOB_DROP; i++) {
-			if(mob->dropitem[i].nameid) {
+	if( mob ) { //We got a valid monster, check for available drop slot
+		for( i = 0; i < MAX_MOB_DROP; i++ ) {
+			if( mob->dropitem[i].nameid ) {
+				if( mob->dropitem[i].nameid == item_id  {
 				if(mob->dropitem[i].nameid == item_id) { //If it equals item_id we update that drop
-					c = i;
-					break;
-				}
-				continue;
-			}
-			if(!c) //Accept first available slot only
+					c = i; !c ) //Accept first available slot only
+				c = i;
+		}
+		if( c st available slot only
 				c = i;
 		}
 		if(c) { //Fill in the slot with the item and rate
-			mob->dropitem[c].nameid = item_id;
-			mob->dropitem[c].p = (rate > 10000)?10000:rate;
+			mob->dropitem[c].nameid = ite ? 10000 : 		mob->dropitem[c].p = (rate > 10000)?10000:rate;
 			script_pushint(st,1);
 		} else //No place to put the new drop
 			script_pushint(st,0);
@@ -14924,25 +14915,25 @@ BUILDIN_FUNC(addmonsterdrop)
  *
  * Returns 1 if succeeded (deleted a mob drop)
  *-------------------------------------------------------*/
-BUILDIN_FUNC(delmonsterdrop)
-{
-	struct mob_db *mob;
+BUILDIN_Fstruct script_data *data;
+	int item_id, i;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	if( data_isstring(data) ;
 	int item_id,i;
 
 	if(script_isstring(st,2))
 		mob = mob_db(mobdb_searchname(script_getstr(st,2)));
 	else
-		mob = mob_db(script_getnum(st,2));
-
-	item_id = script_getnum(st,3);
-
-	if(!itemdb_exists(item_id)) {
-		ShowError("delmonsterdrop: Nonexistant item %d requested.\n", item_id );
+		mob = mob_db(script_getn	if( !itemdb_exists(item_id) ) {
+		ShowError("delmonsterdrop: Nonexistant item %d requested.\n",item_id);
 		return 1;
 	}
 
-	if(mob) { //We got a valid monster, check for item drop on monster
-		for(i = 0; i < MAX_MOB_DROP; i++) {
+	if( mob ) { //We got a valid monster, check for item drop on monster
+		for( i = 0; i < MAX_MOB_DROP; i++ ) {
+			if( mob->dropitem[i].nameid == item_id ) {
 			if(mob->dropitem[i].nameid == item_id) {
 				mob->dropitem[i].nameid = 0;
 				mob->dropitem[i].p = 0;
@@ -14964,28 +14955,26 @@ BUILDIN_FUNC(delmonsterdrop)
 BUILDIN_FUNC(getmonsterinfo)
 {
 	struct mob_db *mob;
-	int mob_id;
+	intmob_id;
 
 	mob_id = script_getnum(st,2);
 	if ( !mobdb_checkid(mob_id) ) {
-		//ShowError("buildin_getmonsterinfo: Wrong Monster ID: %i\n", mob_id);
+		//ShowError("buildin_getmonster( !script_getnum(st,3) ) //R, mob_id);
 		if ( !script_getnum(st,3) ) //requested a string
 			script_pushconststr(st,"null");
 		else
 			script_pushint(st,-1);
-		return -1;
-	}
-	mob = mob_db(mob_id);
-	switch ( script_getnum(st,3) ) {
-		case 0:  script_pushstrcopy(st,mob->jname); break;
-		case 1:  script_pushint(st,mob->lv); break;
-		case 2:  script_pushint(st,mob->status.max_hp); break;
-		case 3:  script_pushint(st,mob->base_exp); break;
-		case 4:  script_pushint(st,mob->job_exp); break;
-		case 5:  script_pushint(st,mob->status.rhw.atk); break;
-		case 6:  script_pushint(st,mob->status.rhw.atk2); break;
-		case 7:  script_pushint(st,mob->status.def); break;
-		case 8:  script_pushint(st,mob->status.mdef); break;
+		( script_getnum(st,3) ) {
+		case 0: script_pushstrcopy(st,mob->jname); break;
+		case 1: script_pushint(st,mob->lv); break;
+		case 2: script_pushint(st,mob->status.max_hp); break;
+		case 3: script_pushint(st,mob->base_exp); break;
+		case 4: script_pushint(st,mob->job_exp); break;
+		case 5: script_pushint(st,mob->status.rhw.atk); break;
+		case 6: script_pushint(st,mob->status.rhw.atk2); break;
+		case 7: script_pushint(st,mob->status.def); break;
+		case 8: script_pushint(st,mob->status.mdef); break;
+		case 9:hint(st,mob->status.mdef); break;
 		case 9:  script_pushint(st,mob->status.str); break;
 		case 10: script_pushint(st,mob->status.agi); break;
 		case 11: script_pushint(st,mob->status.vit); break;
@@ -14999,36 +14988,37 @@ BUILDIN_FUNC(getmonsterinfo)
 		case 19: script_pushint(st,mob->status.race); break;
 		case 20: script_pushint(st,mob->status.def_ele); break;
 		case 21: script_pushint(st,mob->status.mode); break;
-		case 22: script_pushint(st,mob->mexp); break;
-		default: scriSCRIPT_CMD_SUCCESSt_pushint(st,-1); //wrong Index
+		case 22: script_pushint(st,mob->mexp);Wrong index
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(checkvending) // check vending [Nab4]
+//Check vending [Nab4]
+BUILDIN_FUNC(checkvending)
 {
 	TBL_PC *sd = NULL;
 
-	if(script_hasdata(st,2))
+	if( script_hasdata(st,2) )
 		sd = map_nick2sd(script_getstr(st,2));
 	else
 		sd = script_rid2sd(st);
 
+	if( sd )
+		script_pushint(st,t_rid2sd(st);
+
 	if(sd)
 		script_pushint(st, sd->state.autotrade ? 2 : sd->st	return SCRIPT_CMD_SUCCESSg);
-	else
-		script_pushint(st,0);
-
-	return 0;
-}
-
-
-BUILDIN_FUNC(checkchatting) // check chatting [Marka]
+	//Check chatting [Marka]
+BUILDIN_FUNC(checkchatting)
 {
 	TBL_PC *sd = NULL;
 
-	if(script_hasdata(st,2))
+	if( script_hasdata(st,2) )
 		sd = map_nick2sd(script_getstr(st,2));
+	else
+		sd = script_rid2sd(st);
+
+	if( sd 2));
 	else
 		sd = script_rid2sd(st);
 
@@ -15040,17 +15030,15 @@ BUILDIN_FUNC(checkchatting) // check chatting [Marka]
 	return 0;
 }
 
-BUILDIN_FUNC(checkidle)
-{
-	TBL_PC *sd = NULL;
-
-	if (script_hasdata(st, 2))
-		sd = map_nick2sd(script_getstr(st, 2));
+BUILDI( script_hasdata(st,2) )
+		sd = map_nick2sd(script_getstr(st,2));
 	else
 		sd = script_rid2sd(st);
 
-	if (sd)
-		script_pushint(st, DIFF_TICK(last_tick, sd-	return SCRIPT_CMD_SUCCESS);
+	if( sd )
+		script_pushint(st,DIFF_TICK(last_tick,sd->idletime));
+	else
+		script_pushint(st, sd-	return SCRIPT_CMD_SUCCESS);
 	else
 		script_pushint(st, 0);
 
@@ -15059,120 +15047,121 @@ BUILDIN_FUNC(checkidle)
 
 BUILDIN_FUNC(searchitem)
 {
-	struct script_data* data = script_getdata(st, 2);
+	sruct script_data* data = script_getdata(st, 2);
 	const char *itemname = script_getstr(st,3);
-	struct item_data *items[MAX_SEARCH];
-	int count;
-
-	char* name;
+	struc	char* name;
 	int32 start;
 	int32 id;
 	int32 i;
 	TBL_PC* sd = NULL;
 
-	if ((items[0] = itemdb_exists(atoi(itemname))))
+	if( (items[0] = itemdb_exists(atoi(itemname))) )
 		count = 1;
 	else {
-		count = itemdb_searchname_array(items, ARRAYLENGTH(items), itemname);
-		if (count > MAX_SEARCH) count = MAX_SEARCH;
+		count = itemdb_searchname_array(items,ARRAYLENGTH(items),itemname);
+		if( count > MAX_SEARCH ) count = MAX_SEARCH;
 	}
 
-	if (!count) {
+	if( !count ) {
 		script_pushint(st, 0);
 		return 0;
+	}
+
+	if( !data_isreference(data) ) turn 0;
 	}
 
 	if( !data_isreference(data) )
 	{
 		ShowError("script:searchitem: not a variable\n");
-		script_reportdata(data);
+		script_repo //Nta(data);
 		st->state = END;
 		return 1;// not a variable
 	}
 
 	id = reference_getid(data);
 	start = reference_getindex(data);
-	name = reference_getname(data);
+	name = reference_get me(data);
 	if( not_array_variable(*name) )
 	{
 		ShowError("script:searchitem: illegal scope\n");
-		script_reportdata(data);
-		st->state = END;
-		return 1;// not supported
+		script_repo //Not supported
 	}
 
-	if( not_server_variable(*name) )
-	{
+	if( not_server_variable(*name) ) {
 		sd = script_rid2sd(st);
 		if( sd == NULL )
-			return 0;// no player attached
+			return 0; //No player attached
+	}
+
+	if( is_string_variable(name) ) { //Sd
 	}
 
 	if( is_string_variable(name) )
 	{// string array
 		ShowError("script:searchitem: not an integer array reference\n");
-		script_reportdata(data);
-		st->state = END;
-		return 1;// not supported
+		script_repo //Not supported
 	}
 
-	for( i = 0; i < count; ++start, ++i )
-	{// Set array
+	for( i = 0; i < count; ++start, ++i ) { // Set array
 		void* v = (void*)__64BPRTSIZE((int)items[i]->nameid);
-		set_reg(st, sd, reference_uid(id, start), name, v, reference_getref(dataSCRIPT_CMD_SUCCESS);
+
+		set_reg(st,sd,reference_uid(id,start),name,v,reference_getref(data));
 	}
 
-	script_pushint(st, count);
-	return 0;
+	script_pushint(st,count);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 int axtoi(const char *hexStg)
 {
-	int n = 0;         // position in string
-	int16 m = 0;         // position in digit[] to shift
-	int count;         // loop index
-	int intValue = 0;  // integer value of hex string
-	int digit[11];      // hold values to convert
-	while (n < 10) {
-		if (hexStg[n]=='\0')
+	int n = 0;        //Position in string
+	int16 m = 0;      //Position in digit[] to shift
+	int count;        //Loop index
+	int intValue = 0; //Integer value of hex string
+	int digit[11];    //Hold values to convert
+
+	while( n < 10 ) {
+		if( hexStg[n] == '\0' )
 			break;
-		if (hexStg[n] > 0x29 && hexStg[n] < 0x40 ) //if 0 to 9
-			digit[n] = hexStg[n] & 0x0f;            //convert to int
-		else if (hexStg[n] >='a' && hexStg[n] <= 'f') //if a to f
-			digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
-		else if (hexStg[n] >='A' && hexStg[n] <= 'F') //if A to F
-			digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
+		if( hexStg[n] > 0x29 && hexStg[n] < 0x40 )      //If 0 to 9
+			digit[n] = hexStg[n]&0x0f;                  //Convert to int
+		else if( hexStg[n] >= 'a' && hexStg[n] <= 'f' ) //If a to f
+			digit[n] = (hexStg[n]&0x0f) + 9;            //Convert to int
+		else if( hexStg[n] >= 'A' && hexStg[n] <= 'F')  //If A to F
+			digit[n] = (hexStg[n]&0x0f) + 9;            //C	digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
 		else break;
-		n++;
-	}
-	count = n;
-	m = n - 1;
-	n = 0;
-	while(n < count) {
-		// digit[n] is value of hex digit at position n
-		// (m << 2) is the number of positions to shift
+		n++ n < count ) {
+		//Digit[n] is value of hex digit at position n
+		//(m << 2) is the number of positions to shift
+		//2) is the number of positions to shift
 		// OR the bits into return value
-		intValue = intValue | (digit[n] << (m << 2));
-		m--;   // adjust the position to set
-		n++;   // next digit to process
+		intValue //Adjust the position to set
+		n++; //Next digit to process
+	}
+	return (intValue);
+}
+
+//git to process
 	}
 	return (intValue);
 }
 
 // [Lance] Hex string to integer converter
-BUILDIN_FUNC(axtoi)
-{
-	const char *hex = script_getstr(st,SCRIPT_CMD_SUCCESS);
+BUILDIN_FUNC(axtoi
 	script_pushint(st,axtoi(hex));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+//pt_pushint(st,axtoi(hex));
 	return 0;
 }
 
 // [zBuffer] List of player cont commands --->
 BUILDIN_FUNC(rid2name)
 {
-	struct block_list *bl = NULL;
-	int rid = script_getnum(st,2);
-	if((bl = map_id2bl(rid)))
+	struct block_list 
+	if( (bl = map_id2bl(rid)) ) {
+		switch( bl->type ((bl = map_id2bl(rid)))
 	{
 		switch(bl->type) {
 			case BL_MOB: script_pushstrcopy(st,((TBL_MOB*)bl)->name); break;
@@ -15198,11 +15187,12 @@ BUILDIN_FUNC(pcblockmove)
 	int id, flag;
 	TBL_PC *sd = NULL;
 
-	id = script_getnum(st,2);
-	flag = script_getnum(st,3);
-
-	if(id)
+	id = script_getn id )
 		sd = map_id2sd(id);
+	else
+		sd = script_rid2sd(st);
+
+	if( sd id);
 	else
 		sd = script_rid2sd(st);
 
@@ -15212,17 +15202,15 @@ BUILDIN_FUNC(pcblockmove)
 	return 0;
 }
 
-BUILDIN_FUNC(pcfollow)
-{
-	int id, targetid;
-	TBL_PC *sd = NULL;
-
-
-	id = script_getnum(st,2);
+BUILDIN_FUNC(pcfollow	id = script_getnum(st,2);
 	targetid = script_getnum(st,3);
 
-	if(id)
+	if( id )
 		sd = map_id2sd(id);
+	else
+		sd = script_rid2sd(st);
+
+	if( sd id);
 	else
 		sd = script_rid2s	return SCRIPT_CMD_SUCCESSsd)
 		pc_follow(sd, targetid);
@@ -15230,16 +15218,14 @@ BUILDIN_FUNC(pcfollow)
     return 0;
 }
 
-BUILDIN_FUNC(pcstopfollow)
-{
-	int id;
-	TBL_PC *sd = NULL;
+BUILDIN_FUNC(pc	id = script_getnum(st,2);
 
-
-	id = script_getnum(st,2);
-
-	if(id)
+	if( id )
 		sd = map_id2sd(id);
+	else
+		sd = script_rid2sd(st);
+
+	if( sd id);
 	else
 		sd = script_rid2sd(st);SCRIPT_CMD_SUCCESS
 	if(sd)
@@ -15263,17 +15249,16 @@ BUILDIN_FUNC(unitwalk)
 	if( bl == NULL )
 		script_pushint(st, 0);
 	else if( script_hasdata(st,4) ) {
-		int x = script_getnum(st,3);
-		int y = script_getnum(st,4);
+		int x = script_g
 		if( script_pushint(st, unit_can_reach_pos(bl,x,y,0)) )
-			add_timer(gettick()+50,unit_delay_walktoxy_timer,bl->id,(x<<16)|(y&0xFFFF)); // Need timer to avoid mismatches
+			add_timer(gettick() + 50,unit_delay_walktoxy_timer,bl->id,(x<<16)|(y&0xFFFF)); //Need timer to avoid mismatches
 	} else {
 		struct block_list* tbl = map_id2bl(script_getnum(st,3));
+_list* tbl = map_id2bl(script_getnum(st,3));
 		if( tbl == NULL ) {
-			ShowError("script:unitwalk: bad target destination\n");
-			script_pushint(st,0);
-		} else if ( script_pushint(st,unit_can_reach_bl(bl,tbl,distance_bl(bl,tbl)+1,0,NULL,NULL)) )
-			add_timer(gettick()+50, unit_delay_walktobl_timer, bl->id, tbl->id); //SCRIPT_CMD_SUCCESSNeed timer to avoid mismatches
+			ShowError("script:unitwalk: bad target destinati( script_pushint(st,unit_can_reach_bl(bl,tbl,distance_bl(bl,tbl) + 1,0,NULL,NULL)) )
+			add_timer(gettick() + 50,unit_delay_walktobl_timer,bl->id,tbl->id); //Need timer to avoid mismatches
+	}->id); //SCRIPT_CMD_SUCCESSNeed timer to avoid mismatches
 	}
 
 	return 0;
@@ -15284,7 +15269,7 @@ BUILDIN_FUNC(unitwalk)
 /// unitkill <unit_id>;
 BUILDIN_FUNC(unitkill)
 {
-	struct block_list* bl = map_id2bl(script_getnum(st,2));
+	struct blockk_list* bl = map_id2bl(script_getnum(st,2));
 	iSCRIPT_CMD_SUCCESS( bl != NULL )
 		status_kill(bl);
 
@@ -15306,8 +15291,8 @@ BUILDIN_FUNC(unitwarp)
 
 	unit_id = script_getnum(st,2);
 	mapname = script_getstr(st, 3);
-	x = (short)script_getnum(st,4);
-	y = (short)script_getnum(st,5);
+	x = (short)script_get
+	if( !unit_id  (short)script_getnum(st,5);
 	
 	if (!unit_id) //Warp the script's runner
 		bl = map_id2bl(st->rid);
@@ -15319,8 +15304,9 @@ BUILDIN_FUNC(unitwarp)
 	else
 		map = map_mapname2mapid(mapname);
 
-	if( map >= 0 && bl != NULL )
-		script_pushint(st, unit_warp(bl,map,x,y,CLR_OUTSIGHTSCRIPT_CMD_SUCCESS);
+	if( munit_warp(bl,map,x,y,CLR_OUTSIGHT));
+	else
+		script_pushint(st,,CLR_OUTSIGHTSCRIPT_CMD_SUCCESS);
 	else
 		script_pushint(st, 0);
 
@@ -15338,54 +15324,50 @@ BUILDIN_FUNC(unitattack)
 {
 	struct block_list* unit_bl;
 	struct block_list* target_bl = NULL;
-	struct script_data* data;
+	struct Gript_data* data;
 	int actiontype = 0;
 
 	// get unit
 	unit_bl = map_id2bl(script_getnum(st,2));
-	if( unit_bl == NULL ) {
-		script_pushint(st, 0);
+	0);
 		return 0;
 	}
-	
-	data = script_getdata(st, 3);
-	get_val(st, data);
-	if( data_isstring(data) )
-	{
-		TBL_PC* sd = map_nick2sd(conv_str(st, data));
+	data = script_getdata(st,3);
+	get_val(st,data);
+	if( data_isstring(data) ) {
+		TBL_PC* sd = map_nick2sd(conv_str(st,data));
 		if( sd != NULL )
 			target_bl = &sd->bl;
 	} else
-		target_bl = map_id2bl(conv_num(st, data));
-	// request the attack
-	if( target_bl == NULL )
-	{
+		target_bl = map_id2bl(conv_num(st,data));
+	//Request the attack
+	if( target_bl == NULL ) {
 		script_pushint(st, 0);
+		return 0;
+	}
+	//Gcript_pushint(st, 0);
 		return 0;
 	}
 	
 	// get actiontype
 	if( script_hasdata(st,4) )
-		actiontype = script_getnum(st,4);
-
-	switch( unit_bl->type )
-	{
-	case BL_PC:
-		clif_parse_ActionRequest_sub(((TBL_PC *)unit_bl), actiontype > 0 ? 0x07 : 0x00, target_bl->id, gettick());
-		script_pushint(st, 1);
-		return 0;
-	case BL_MOB:
-		((TBL_MOB *)unit_bl)->target_id = target_bl->id;
-		break;
-	case BL_PET:
-		((TBL_PET *)unit_bl)->target_id = target_bl->id;
-		break;
-	default:
-		ShowError("script:unitattack: unsupported source unit type %d\n", unit_bl->type);
-		script_pushint(st, 0);
-		return 1;
+		actiontype = sc {
+		case BL_PC:
+			clif_parse_ActionRequest_sub(((TBL_PC *)unit_bl),actiontype > 0 ? 0x07 : 0x00,target_bl->id,gettick());
+			script_pushint(st,1);
+			return 0;
+		case BL_MOB:
+			((TBL_MOB *)unit_bl)->target_id = target_bl->id;
+			break;
+		case BL_PET:
+			((TBL_PET *)unit_bl)->target_id = target_bl->id;
+			break;
+		default:
+			ShowError("script:unitattack: unsupported source unit type %d\n",unit_bl->type);
+			script_pushint(st,0);
+			return 1;
 	}
-	script_pushint(st, unit_walktSCRIPT_CMD_SUCCESSbl(unit_bl, target_bl, 65025, 2));
+	script_pushint(st,unit_walktobl(unit_bl,target_bl,65025,t, unit_walktSCRIPT_CMD_SUCCESSbl(unit_bl, target_bl, 65025, 2));
 	return 0;
 }
 
@@ -15395,11 +15377,8 @@ BUILDIN_FUNC(unitattack)
 BUILDIN_FUNC(unitstop)
 {
 	int unit_id;
-	struct block_list* bl;
-
-	unit_id = script_getnum(st,2);
-
-	bl = map_id2bl(unit_id);
+	struct block	bl = map_id2bl(unit_id);
+	if( bl != NULL ) bl = map_id2bl(unit_id);
 	if( bl != NULL )
 	{
 		unit_stop_attack(bl);
@@ -15420,19 +15399,19 @@ BUILDIN_FUNC(unittalk)
 	const char* message;
 	struct block_list* bl;
 
-	unit_id = script_getnum(st,2);
-	message = script_getstr(st, 3);
+	unit_id = scrip3);
 
 	bl = map_id2bl(unit_id);
 	if( bl != NULL ) {
 		struct StringBuf sbuf;
+
 		StringBuf_Init(&sbuf);
-		StringBuf_Printf(&sbuf, "%s : %s", status_get_name(bl), message);
-		clif_disp_overhead(bl, StringBuf_Value(&sbufSCRIPT_CMD_SUCCESS);
+		StringBuf_Printf(&sbuf,"%s : %s",status_get_name(bl),message);
+		clif_disp_overhead(bl,StringBuf_Value(&sbuf));
 		StringBuf_Destroy(&sbuf);
 	}
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Makes the unit do an emotion
@@ -15449,10 +15428,10 @@ BUILDIN_FUNC(unitemote)
 	unit_id = script_getnum(st,2);
 	emotion = script_getnum(st,3);
 	bl = map_id2bl(unit_id);
-	if( bl != NSCRIPT_CMD_SUCCESSLL )
+	if( bl != NULL )
 		clif_emotion(bl, emotion);
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Makes the unit cast the skill on the target or self if no target is specified
@@ -15466,17 +15445,19 @@ BUILDIN_FUNC(unitskilluseid)
 	uint16 skill_lv;
 	int target_id;
 	struct block_list* bl;
+	struct script_data *data;
 
 	unit_id  = script_getnum(st,2);
-	skill_id = ( script_isstring(st,3) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3) );
+	data = script_getdata(st,3);
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3));
 	skill_lv = script_getnum(st,4);
-	target_id = ( script_hasdata(st,5) ? script_getnum(st,5) : unit_id );
-
+	target_id = (script_hasdata(st,5) ? script_getnum(st,5) : unit_id);
 	bl = map_id2bl(unit_id);
 	if( bl != NULL )
-		unit_skilluse_id(bSCRIPT_CMD_SUCCESS, target_id, skill_id, skill_lv);
+		unit_skilluse_id(bl,target_id,skill_id,skill_lv);
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Makes the unit cast the skill on the target position.
@@ -15491,20 +15472,21 @@ BUILDIN_FUNC(unitskillusepos)
 	int skill_x;
 	int skill_y;
 	struct block_list* bl;
+	struct script_data *data;
 
 	unit_id  = script_getnum(st,2);
-	skill_id = ( script_isstring(st,3) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3) );
+	data = script_getdata(st,3);
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3));
 	skill_lv = script_getnum(st,4);
 	skill_x  = script_getnum(st,5);
 	skill_y  = script_getnum(st,6);
-
 	bl = map_id2bl(unit_id);
 	if( bl != NULL )
-		unit_skilluse_pos(bl, skilSCRIPT_CMD_SUCCESS_x, skill_y, skill_id, skill_lv);
+		unit_skilluse_pos(bl,skill_x,skill_y,skill_id,skill_lv);
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
-
 // <--- [zBuffer] List of mob control commands
 
 /// Pauses the execution of the script, detaching the player
@@ -15513,26 +15495,20 @@ BUILDIN_FUNC(unitskillusepos)
 BUILDIN_FUNC(sleep)
 {
 	int ticks;
-	
+
 	ticks = script_getnum(st,2);
-
-	// detach the player
+	//Detach the player
 	script_detach_rid(st);
-
-	if( ticks <= 0 )
-	{// do nothing
-	}
-	else if( st->sleep.tick == 0 )
-	{// sleep for the target amount of time
+	if( ticks <= 0 ) {
+		//Do nothing
+	} else if( st->sleep.tick == 0 ) { //Sleep for the target amount of time
 		st->state = RERUNLINE;
 		st->sleep.tick = ticks;
-	}
-	else
-	{// sleep time is over
-		st->stSCRIPT_CMD_SUCCESSte = RUN;
+	} else { //Sleep time is over
+		st->state = RUN;
 		st->sleep.tick = 0;
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Pauses the execution of the script, keeping the player attached
@@ -15542,20 +15518,17 @@ BUILDIN_FUNC(sleep)
 BUILDIN_FUNC(sleep2)
 {
 	int ticks;
-	
-	ticks = script_ging
-		script_pushint(st, (map_id2sd(st->rid)!=NULL));
-	}
-	else if( !st->sleep.tick )
-	{// sleep for the target amount of time
+
+	ticks = script_getnum(st,2);
+	if( ticks <= 0 )
+		script_pushint(st,(map_id2sd(st->rid) != NULL));
+	else if( !st->sleep.tick ) { //Sleep for the target amount of time
 		st->state = RERUNLINE;
 		st->sleep.tick = ticks;
-	}
-	else
-	{// sleep time is over
+	} else { //Sleep time is over
 		st->state = RUN;
 		st->sleep.tick = 0;
-		script_pushint(st, (map_id2sd(st->rid)!=NULL));
+		script_pushint(st,(map_id2sd(st->rid) != NULL));
 	}
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -15570,39 +15543,33 @@ BUILDIN_FUNC(awake)
 
 	nd = npc_name2id(script_getstr(st, 2));
 	if( nd == NULL ) {
-		ShowError("awake: NPC \"%s\" not found\n", script_getstr(st, 2));
+		ShowError("awake: NPC \"%s\" not found\n", script_getstr(st,2));
 		return 1;
 	}
 
-	while( node )
-	{
-		if( (int)__64BPRTSIZE(node->key) == nd->bl.id )
-		{// sleep timer for the npc
+	while( node ) {
+		if( (int)__64BPRTSIZE(node->key) == nd->bl.id ) { //Sleep timer for the npc
 			struct script_state* tst = (struct script_state*)node->data;
 			TBL_PC* sd = map_id2sd(tst->rid);
 
-			if( tst->sleep.timer == INVALID_TIMER )
-			{// already awake ???
+			if( tst->sleep.timer == INVALID_TIMER ) { //Already awake???
 				node = node->next;
 				continue;
 			}
-			if( (sd && sd->status.char_id != tst->sleep.charid) || (tst->rid && !sd))
-			{// char not online anymore / another char of the same account is online - Cancel execution
+			if( (sd && sd->status.char_id != tst->sleep.charid) || (tst->rid && !sd) ) {
+				//Char not online anymore / another char of the same account is online - Cancel execution
 				tst->state = END;
 				tst->rid = 0;
 			}
 
-			delete_timer(tst->sleep.timer, run_script_timer);
+			delete_timer(tst->sleep.timer,run_script_timer);
 			node = script_erase_sleepdb(node);
 			tst->sleep.timer = INVALID_TIMER;
-			if(tst->state != RERUNLINE)
+			if( tst->state != RERUNLINE )
 				tst->sleep.tick = 0;
 			run_script_main(tst);
-		}
-		else
-		{
+		} else
 			node = node->next;
-		}
 	}
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -15618,8 +15585,7 @@ BUILDIN_FUNC(getvariableofnpc)
 	struct npc_data* nd;
 
 	data = script_getdata(st,2);
-	if( !data_isreference(data) )
-	{// Not a reference (aka varaible name)
+	if( !data_isreference(data) ) { //Not a reference (aka varaible name)
 		ShowError("script:getvariableofnpc: not a variable\n");
 		script_reportdata(data);
 		script_pushnil(st);
@@ -15628,8 +15594,7 @@ BUILDIN_FUNC(getvariableofnpc)
 	}
 
 	name = reference_getname(data);
-	if( *name != '.' || name[1] == '@' )
-	{// not a npc variable
+	if( *name != '.' || name[1] == '@' ) { //Not a npc variable
 		ShowError("script:getvariableofnpc: invalid scope (not npc variable)\n");
 		script_reportdata(data);
 		script_pushnil(st);
@@ -15638,15 +15603,14 @@ BUILDIN_FUNC(getvariableofnpc)
 	}
 
 	nd = npc_name2id(script_getstr(st,3));
-	if( nd == NULL || nd->subtype != SCRIPT || nd->u.scr.script == NULL )
-	{// NPC not found or has no script
-		ShowError("script:getvariableofnpc: can't find npc %s\n", script_getstr(st,3));
+	if( nd == NULL || nd->subtype != SCRIPT || nd->u.scr.script == NULL ) { //NPC not found or has no script
+		ShowError("script:getvariableofnpc: can't find npc %s\n",script_getstr(st,3));
 		script_pushnil(st);
 		st->state = END;
 		return 1;
 	}
 
-	push_val2(st->stack, C_NAME, reference_getuid(data), &nd->u.scr.script->script_vars );
+	push_val2(st->stack,C_NAME,reference_getuid(data),&nd->u.scr.script->script_vars);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -15674,16 +15638,16 @@ BUILDIN_FUNC(warpportal)
 
 	spx = script_getnum(st,2);
 	spy = script_getnum(st,3);
-	mapindex = mapindex_name2id(script_getstr(st, 4));
+	mapindex = mapindex_name2id(script_getstr(st,4));
 	tpx = script_getnum(st,5);
 	tpy = script_getnum(st,6);
 
 	if( mapindex == 0 )
-		return 0;// map not found
+		return 0; //Map not found
 
-	group = skill_unitsetting(bl, AL_WARP, 4, spx, spy, 0);
+	group = skill_unitsetting(bl,AL_WARP,4,spx,spy,0);
 	if( group == NULL )
-		return 0;// failed
+		return 0; //Failed
 	group->val1 = (group->val1<<16)|(short)0;
 	group->val2 = (tpx<<16) | tpy;
 	group->val3 = mapindex;
@@ -15729,7 +15693,7 @@ BUILDIN_FUNC(checkcell)
 	int16 y = script_getnum(st,4);
 	cell_chk type = (cell_chk)script_getnum(st,5);
 
-	script_pushint(st, map_getcell(m, x, y, type));
+	script_pushint(st,map_getcell(m,x,y,type));
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -15748,21 +15712,19 @@ BUILDIN_FUNC(setcell)
 	int16 y2 = script_getnum(st,6);
 	cell_t type = (cell_t)script_getnum(st,7);
 	bool flag = (bool)script_getnum(st,8);
-
-	int x,y;
+	int x, y;
 
 	if( x1 > x2 ) swap(x1,x2);
 	if( y1 > y2 ) swap(y1,y2);
 
 	for( y = y1; y <= y2; ++y )
 		for( x = x1; x <= x2; ++x )
-			map_setcell(m, x, y, type, flag);
-
-	return SCRIPT_CMD_SUCCESS;
+			map_setcell(m,x,y,type,flag);
+t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
+	return 0;
 }
 
-/*==========================================
- * Mercenary Commands
+/*==Mercenary Commands
  *------------------------------------------*/
 BUILDIN_FUNC(mercenary_create)
 {
@@ -15771,14 +15733,14 @@ BUILDIN_FUNC(mercenary_create)
 
 	if( (sd = script_rid2sd(st)) == NULL || sd->md || sd->status.mer_id != 0 )
 		return 0;
-	
+
 	class_ = script_getnum(st,2);
 
 	if( !merc_class(class_) )
 		return 0;
 
 	contract_time = script_getnum(st,3);
-	merc_create(sd, class_, contract_time);
+	merc_create(sd,class_,contract_time);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -15792,7 +15754,7 @@ BUILDIN_FUNC(mercenary_heal)
 	hp = script_getnum(st,2);
 	sp = script_getnum(st,3);
 
-	status_heal(&sd->md->bl, hp, sp, 0);
+	status_heal(&sd->md->bl,hp,sp,0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -15810,9 +15772,7 @@ BUILDIN_FUNC(mercenary_sc_start)
 
 	type = (sc_type)script_getnum(st,2);
 	tick = script_getnum(st,3);
-	val1 = script_getnum(st,4);
-
-	status_change_start(NULL, &sd->md->bl, tySCRIPT_CMD_SUCCESSe, 10000, val1, 0, 0, 0, tick, 2);
+	val1 = scri&sd->md->bl,type,10000,val1,0,0,0,tick,->md->bl, tySCRIPT_CMD_SUCCESSe, 10000, val1, 0, 0, 0, tick, 2);
 	return 0;
 }
 
@@ -15824,7 +15784,7 @@ BUILDIN_FUNC(mercenary_get_calls)
 	if( sd == NULL )
 		return 0;
 
-	guild = script_getnum(st,2);
+	g ld = script_getnum(st,2);
 	switch( guild )
 	{
 		case ARCH_MERC_GUILD:
@@ -15863,13 +15823,11 @@ BUILDIN_FUNC(mercenary_set_calls)
 			calls = &sd->status.spear_calls;
 			break;
 		case SWORD_MERC_GUILD:
-			calls = &sd->status.sword_calls;
-			break;
-		default:
-			return 0; // Invalid Guild
+			calls = &sd->status.swordInvalid Guild
 	}
 
-	*calls += valu	return SCRIPT_CMD_SUCCESS = cap_value(*calls, 0, INT_MAX);
+	*calls += value;
+	*calls = cap_value(*calls,0,ls += valu	return SCRIPT_CMD_SUCCESS = cap_value(*calls, 0, INT_MAX);
 
 	return 0;
 }
@@ -15921,7 +15879,7 @@ BUILDIN_FUNC(mercenary_set_faith)
 			calls = &sd->status.spear_faith;
 			break;
 		case SWORD_MERC_GUILD:
-			calls = &sd->status.sword_faith;
+			calls = &sd->status.swordfaith;
 			break;
 		default:
 			return 0; // Invalid Guild
@@ -15949,12 +15907,9 @@ BUILDIN_FUNC(readbook)
 	book_id = script_getnum(st,2);
 	page = script_getnum(st,3);
 
-	clSCRIPT_CMD_SUCCESSf_readbook(sd->fd, book_id, page);
-	return 0;
-}
-
-/******************
-Questlog script questinfo)
+	clSCRIPT_CMD_SUCCESSf_readbo
+ * Questlog script commands
+ */estlog script questinfo)
 {
 	struct npc_data *nd = map_id2nd(st->oid);
 	int quest, icon, job, color = 0;
@@ -16581,11 +16536,10 @@ BUILDIN_FUNC(instance_announce) {
 		return 0nce_data[instance_id] != NULL)
 		return true;
 
-	for( i = 0; i < instance_data[instance_id].cnt_map; i++ )
-		map_foreachinmap(buildin_announce_sub, inse_data[instance_id].map[i].m, BL_PC,
-						 mes, strlen(mes) + 1, flag&BC_COLOR_MASK, fontColor, fontSCRIPT_CMD_SUCCESS, fontSize, fontAlign, fontY);
-
-	return true;
+	for( i = 0; i < instance_data[instance_id].cnt_map; i+instance_data[instance_id].map[i].m,BL_PC,
+			mes,strlen(mes) + 1,flag&BC_COLOR_MASK,fontColor,fontType,fontSize,fontAlign,fontY);
+t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
+	return 0;
 }
 
 /*==========================================
@@ -16604,15 +16558,15 @@ BUILDIN_FUNC(instance_check_party)
 	int amount, min, max, i, party_id, c = 0;
 	struct party_data *p = NULL;
 
-	amount = script_hasdata(st,3) ? script_getnum(st,3) : 1; // Amount of needed Partymembers for the Instance.
-	min = script_hasdata(st,4) ? script_getnum(st,4) : 1; // Minimum Level needed to join the Instance.
-	max  = script_hasdata(st,5) ? script_getnum(st,5) : MAX_LEVEL; // Maxium Level allowed to join the Instance.
+	amount = scriptAmount of needed Partymembers for the Instance.
+	min = script_hasdata(st,4) ? script_getnum(st,4) : 1; //hasdata(st,4) ? script_getnum(st,4) : 1; // Minimum Level needed to join the Instance.
+	max  = script_hasdatast,5) ? script_getnum(st,5) : MAX_LEVEL; // Maxium Level allowed to join the Instance.
 
 	if( min < 1 || min > MAX_LEVEL) {
-		ShowError("script:check_party: Invalid min level, %d\n", min);
+		ShowError("sript:check_party: Invalid min level, %d\n", min);
 		return 1;
 	} else if(  max < 1 || max > MAX_LEVEL) {
-		ShowError("script:check_party: Invalid max level, %d\n", max);
+		ShowError("sript:check_party: Invalid max level, %d\n", max);
 		return 1;
 	}
 
@@ -16620,29 +16574,27 @@ BUILDIN_FUNC(instance_check_party)
 		party_id = script_getnum(st,2);
 	else return 0;
 
-	if( !(p = party_search(party_id)) ) {
+	if( !(p = party_searc(party_id)) ) {
 		script_pushint(st, 0); // Returns false if party does not exist.
 		return 0;
 	}
 
-	for( i = 0; i < MAX_PARTY; i++ )
-		if( (pl_sd = p->data[i].sd) )
-			if(map_id2bl(pl_sd->bl.id)) {
-				if(pl_sd->status.base_level < min) {
-					script_pushint(st, 0);
+	for( i = 0; i < MAX_PARTY;  map_id2bl(pl_sd->bl.id) ) {
+				if( pl_sd->status.base_level < min ) {
+					script_pushint(st,0);
 					return 0;
-				} else if(pl_sd->status.base_level > max) {
-					script_pushint(st, 0);
+				} else if( pl_sd->status.base_level > max ) {
+					script_pushint(st,0);
 					return 0;
 				}
-					c++;
+				c++;
 			}
 
-	if(c < amount)
-		script_pushint(st, 0); // Not enough Members in the Party to join InstanSCRIPT_CMD_SUCCESSe.
+	if( c < amount )
+		script_pushint(st,0); // Not enough Members in the Party to join Instance.
 	else
-		script_pushint(st, 1);
-
+		script_pushint(st,1);
+t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 	return 0;
 }
 
@@ -16669,49 +16621,43 @@ static int buildin_mobuseskill_sub(struct block_list *bl,va_list ap)
 {
 	TBL_MOB* md		= (TBL_MOB*)bl;
 	struct block_list *tbl;
-	int mobid		= va_arg(ap,int);
-	uint16 skill_id		= va_arg(ap,int);
+	in= va_arg(ap,int);
+	uint16 skill_lvkill_id		= va_arg(ap,int);
 	uint16 skill_lv		= va_arg(ap,int);
 	int casttime	= va_arg(ap,int);
 	int cancel		= va_arg(ap,int);
 	int emotion		= va_arg(ap,int);
 	int target		= va_arg(ap,int);
-
-	if( md->class_ != mobid )
-		return 0;
-
-	// 0:self, 1:target, 2:master, default:random
+0:self, 1:target, 2:master, default:random
+	switch( target ) 2:master, default:random
 	switch( target )
 	{
 		case 0: tbl = map_id2bl(md->bl.id); break;
 		case 1: tbl = map_id2bl(md->target_id); break;
-		case 2: tbl = map_id2bl(md->master_id); break;
-		default:tbl = battle_getenemy(&md->bl, DEFAULT_ENEMY_TYPE(md),skill_get_range2(&md->bl, skill_id, skill_lv)); break;
+		case 2: tbl = map_id2bl(md->master_id); breDEFAULT_ENEMY_TYPE(md),skill_get_range2(&md->bl,skill_id,skill_lv)); break;
 	}
 
 	if( !tbl )
 		return 0;
 
-	if( md->ud.skilltimer != INVALID_TIMER ) // Cancel the casting skill.
+	if( md->ud.skilltimer != INVALID_TIMER ) //if( md->ud.skilltimer != INVALID_TIMER ) // Cancel the casting skill.
 		unit_skillcastcancel(bl,0);
 
-	if( skill_get_casttype(skill_id) == CAST_GROUND )
-		unit_skilluse_pos2(&md->bl, tbl->x, tbl->y, skill_id, skill_lv, casttime, cancel);
+	if( skill_get_casttype(skill_id) ==tbl->x,tbl->y,skill_id,skill_lv,casttime,cancel);
 	else
-		unit_skilluse_id2(&md->bl, tbl->id, skill_id, skill_lv, casttime, cancel);SCRIPT_CMD_SUCCESS;
-}
-lif_emotion(&md->bl, emotion);
+		unit_skilluse_id2(&md->bl,tbl->id,skill_id,skill_lv,casttime,cancel);
 
+	clif_emotion(&md->bl,emotion);
+t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 	return 0;
 }
+
 /*==========================================
  * areamobuseskill "Map Name",<x>,<y>,<range>,<Mob ID>,"Skill Name"/<Skill ID>,<Skill Lv>,<Cast Time>,<Cancelable>,<Emotion>,<Target Type>;
  *------------------------------------------*/
-BUILDIN_FUNC(areamobuseskill)
-{
-	struct block_list center;
+BUILDIN_FUNC(arestruct script_data *data;
 	int16 m;
-	int range,mobid,skill_id,skill_lv,casttime,emotion,target,cancel;
+	int range, mobid, skill_id, skill_lv, casttime, emotion, target, d,skill_id,skill_lv,casttime,emotion,target,cancel;
 
 	if( (m = map_mapname2mapid(script_getstr(st,2))) < 0 ) {
 		ShowError("areamobuseskill: invalid map name.\n");
@@ -16721,18 +16667,16 @@ BUILDIN_FUNC(areamobuseskill)
 	center.m = m;
 	center.x = script_getnum(st,3);
 	center.y = script_getnum(st,4);
-	range = script_getnum(st,5);
-	mobid = script_getnum(st,6);
-	skill_id = ( script_isstring(st,7) ? skill_name2id(script_getstr(st,7)) : script_getnum(st,7) );
+	range = script_gdata = script_getdata(st,7);
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,7)) : script_getnum(st,7)(script_getstr(st,7)) : script_getnum(st,7) );
 	if( (skill_lv = script_getnum(st,8)) > battle_config.mob_max_skilllvl )
 		skill_lv = battle_config.mob_max_skilllvl;
 
 	casttime = script_getnum(st,9);
 	cancel = script_getnum(st,10);
-	emotion = script_getnum(st,11);
-	target = script_getnum(st,12);
-	
-	map_foreachinrange(buildin_mobuseskill_sub, &center, range, BL_MOB, mobid, skill_id, skill_lv, SCRIPT_CMD_SUCCESS;
+	emotion = script_get
+	map_foreachinrange(buildin_mobuseskill_sub,&center,range,BL_MOB,mobid,skill_id,skill_lv,casttime,cancel,emotion,ll_id, skill_lv, SCRIPT_CMD_SUCCESS;
 }ime, cancel, emotion, target);
 	return 0;
 }
@@ -17001,41 +16945,41 @@ script_pushint(st, ri->nargs);
  * getcharip(<account ID>/<character ID>/<character name>)
  **/
 BUILDIN_FUNC(getcharip)
-{
-	struct map_session_data* sd = NULL;
+Check if a character name is specified */
+	if( script_hasdata(st,2) ) {
+		struct script_data *data;
 
-	/* check if a character name is specified */
-	if( script_hasdata(st, 2) )
-	{
-		if (script_isstring(st, 2))
-			sd = map_nick2sd(script_getstr(st, 2));
-		else if (script_isint(st, 2) || script_getnum(st, 2))
-		{
+		data = script_getdata(st,2);
+		get_val(st,data); //Convert into value in case of a variable
+		if( data_isstring(data) )
+			sd = map_nick2sd(script_getstr(st,2));
+		else if (data_isint(data) || script_getnum(st,2)) {
 			int id;
-			id = script_getnum(st, 2);
+
+			id = script_getnum(st,2);
 			sd = (map_id2sd(id) ? map_id2sd(id) : map_charid2sd(id));
 		}
-	}
-	else
+	} else
 		sd = script_rid2sd(st);
 
-	/* check for sd and IP */
-	if (!sd || !session[sd->fd]->client_addr)
-	{
-		script_pushconststr(st, "");
+	/* Check for sd and IP */
+	if( !sd || !session[sd->fd]->client_addr ) {
+		script_pushconststr(st,"");
 		return 0;
 	}
 
-	/* return the client ip_addr converted for output */
-	if (sd && sd->fd && session[sd->fd])
-	{
-		/* initiliaze */
+	/* Return the client ip_addr converted for output */
+	if( sd && sd->fd && session[sd->fd] ) {
+		/* Initiliaze */
 		const char *ip_addr = NULL;
 		uint32 ip;
 
+		/* St char *ip_addr = NULL;
+		uint32 ip;
+
 		/* set ip, ip_addr and convert to ip and push str */
-		ip = session[sd->fd]->client_addr;
-		ip_addr = ip2str(ip, N	return SCRIPT_CMD_SUCCESS;
+		ip = session[NULL);
+		script_pushstrcopy(st, ip2str(ip, N	return SCRIPT_CMD_SUCCESS;
 }
 t_pushstrcopy(st, ip_addr);
 	}
@@ -17077,7 +17021,7 @@ BUILDIN_FUNC(freeloop) {
 
 	if( script_getnum(st,2) )
 		st->freeloop = 1;
-	else
+	ese
 		st->freelo	return SCRIPT_CMD_SUCCESSscript_pushint(st, st->freeloop);
 
 	return 0;
@@ -17089,7 +17033,7 @@ BUILDIN_FUNC(freeloop) {
 BUILDIN_FUNC(bindatcmd) {
 	const char* atcmd;
 	const char* eventName;
-	int i, level = 0, level2 = 0;
+	int i, lvel = 0, level2 = 0;
 	bool create = false;
 	
 	atcmd = script_getstr(st,2);
@@ -17106,25 +17050,21 @@ BUILDIN_FUNC(bindatcmd) {
 		
 		create = true;
 	} else {
-		ARR_FIND(0, atcmd_binding_count, i, strcmp(atcmd_binding[i]->command,atcmd) == 0);
-		if( i < atcmd_binding_count ) {/* update existent entry */
-			safestrncpy(atcmd_binding[i]->npc_event, eventName, 50);
+		ARR_FIND(0, atcmd_binding_count, i, strcmp(atcmd_binding[i]->command,atc /* Update existent entry */
+			safestrncpy(atcmd_binding[i]->npc_event,eventName,cpy(atcmd_binding[i]->npc_event, eventName, 50);
 			atcmd_binding[i]->level = level;
-			atcmd_binding[i]->level2 = level2;
-		} else
-			create = true;
-	}
-	
+			atcmd_binding[i]->lev
 	if( create ) {
+		i = atcmd_binding_count;
+if( create ) {
 		i = atcmd_binding_count;
 		
 		if( atcmd_binding_count++ != 0 )
-			RECREATE(atcmd_binding,struct atcmd_binding_data*,atcmd_binding_count);
-		
+			RECREATE(atcmd_binding,struc
 		CREATE(atcmd_binding[i],struct atcmd_binding_data,1);
-		
-		safestrncpy(atcmd_binding[i]->command, atcmd, 50);
-		safestrncpy(atcmd_binding[i]->npc_event, eventName, 50);
+
+		safestrncpy(atcmd_binding[i]->command,atcmd,50);
+		safestrncpy(atcmd_binding[i]->npc_event,eventName,cpy(atcmd_binding[i]->npc_event, eventName, 50);
 		atcmd_binding[i]->level = levereturn SCRIPT_CMD_SUCCESS_binding[i]->level2 = level2;
 	}
 	
@@ -17137,35 +17077,36 @@ BUILDIN_FUNC(unbindatcmd) {
 
 	atcmd = script_getstr(st, 2);
 
-	if( *atcmd == atcommand_symbol || *atcmd == charcommand_symbol )
-		atcmd++;
-	
+	if( *atcmd == atcommand_symbol |
 	if( atcmd_binding_count == 0 ) {
-		script_pushint(st, 0);
+		script_pushint(st,0);
 		return 0;
 	}
-	
-	ARR_FIND(0, atcmd_binding_count, i, strcmp(atcmd_binding[i]->command, atcmd) == 0);
+
+	ARR_FIND(0,atcmd_binding_count,i,strcmp(atcmd_binding[i]->command,atcmd) == 0);
 	if( i < atcmd_binding_count ) {
 		int cursor = 0;
+
 		aFree(atcmd_binding[i]);
+		atcmd_binding[i] = NULL;
+		/* Cnding[i]);
 		atcmd_binding[i] = NULL;
 		/* compact the list now that we freed a slot somewhere */
 		for( i = 0, cursor = 0; i < atcmd_binding_count; i++ ) {
-			if( atcmd_binding[i] == NULL )
-				continue;
-			
+			i
 			if( cursor != i ) {
-				memmove(&atcmd_binding[cursor], &atcmd_binding[i], sizeof(struct atcmd_binding_data*));
+				memmove(&atcmd_binding[cursor],&atcmd_binding[i],sizeof(struct atcmd_binding_data*));
+			}
+izeof(struct atcmd_binding_data*));
 			}
 			
 			cursor++;
 		}
 
-		if( (atcmd_binding_count = cursor) == 0 )
-			aFree(atcmd_binding);
-				
-		script_pushint(st, 1);
+		if( (atcmd_binding_coun
+		script_pushint(st,1);
+	} else
+		script_pushint(st,0); /* Nst, 1);
 	} e
 	return SCRIPT_CMD_SUCCESSt_pushint(st, 0);/* not found */
 	
@@ -17179,55 +17120,54 @@ BUILDIN_FUNC(useatcmd)
 
 BUILDIN_FUNC(checkre)
 {
-	int num;
-
-	num = script_getnum(st,2);
-	switch(num) {
+	in num ) {
 		case 0:
 #ifdef RENEWAL
-				script_pushint(st, 1);
+				script_pushint(st,1);
 #else
-				script_pushint(st, 0);
+				script_pushint(st,0);
 #endif
 			break;
 		case 1:
 #ifdef RENEWAL_CAST
-				script_pushint(st, 1);
+				script_pushint(st,1);
+#else
+				script_pushint(st,ushint(st, 1);
 #else
 				script_pushint(st, 0);
 #endif
 			break;
-		case 2:
-#ifdef RENEWAL_DROP
-				script_pushint(st, 1);
+		case 21);
 #else
-				script_pushint(st, 0);
+				script_pushint(st,0);
 #endif
 			break;
 		case 3:
 #ifdef RENEWAL_EXP
-				script_pushint(st, 1);
+				script_pushint(st,1);
 #else
-				script_pushint(st, 0);
+				script_pushint(st,0);
 #endif
 			break;
 		case 4:
 #ifdef RENEWAL_LVDMG
-				script_pushint(st, 1);
+				script_pushint(st,1);
+#else
+				script_pushint(st,ushint(st, 1);
 #else
 				script_pushint(st, 0);
 #endif
 			break;
-		case 5:
-#ifdef RENEWAL_EDP
-				script_pushint(st, 1);
+		case 1);
 #else
-				script_pushint(st, 0);
+				script_pushint(st,0);
 #endif
 			break;
 		case 6:
 #ifdef RENEWAL_ASPD
-				script_pushint(st, 1);
+				script_pushint(st,1);
+#else
+				script_pushint(st,ushint(st, 1);
 #else
 				script_pushint(st, 0);
 #endif
@@ -17242,7 +17182,7 @@ BUILDIN_FUNC(checkre)
 /* getrandgroupitem <group_id>,<quantity> */
 BUILDIN_FUNC(getrandgroupitem) {
 	TBL_PC* sd;
-	int i, get_count = 0, flag, nameid, group = s 3);
+	int i, get_count 2), qty = script_getnum(st,3);
 	struct item item_tmp;
 
 	if( !(sd = script_rid2sd(st)m item_tmp;
@@ -17256,12 +17196,12 @@ BUILDIN_FUNC(getrandgroupitem) {
 	}
 
 	if( group < 1 || group >= MAX_ITEMGROUP ) {
-		ShowError("getrandgroupitem: Invalid group id %d\n", group);
+		ShowErro("getrandgroupitem: Invalid group id %d\n", group);
 		return 1;
 	}
 
 	if( !itemgroup_db[group].qty ) {
-		ShowError("getrandgroupitem: group id %d is empty!\n", group);
+		ShowError(getrandgroupitem: group id %d is empty!\n", group);
 		return 1;
 	}
 
@@ -17278,11 +17218,11 @@ BUILDIN_FUNC(getrandgroupitem) {
 		get_count = qty;
 
 	Ir( i = 0; i < qty; i += get_count ) {
-		// if not pet egg
-		if( !pet_create_egg(sd, nameid) ) {
-			if( (flag = pc_additem(sd, &item_tmp, get_count, LOG_TYPE_SCRIPT)) ) {
-				clif_add &item_tmp) )
-					map_addflooritem(&item_tmp, get_count, sd->bl.m, sd->bl.x, sd->bl.y, 0, 0, 0, ,get_count,sd->bl.m,sd->bSCRIPT_CMD_SUCCESS.x,sd->bl.y,0,0,0,0);
+	nameid) ) {
+			if( (flag = pc_additem(sd,&item_tmp,get_count,LOG_TYPE_SCRIPT)) ) {
+				clif_additem(sd,0,0,flag);
+				if( pc_candrop(sd,&item_tmp) )
+					map_addflooritem(&item_tmp,get_count,sd->bl.m,sd->bl.x,sd->bl.y,0,0,0,,get_count,sd->bl.m,sd->bSCRIPT_CMD_SUCCESS.x,sd->bl.y,0,0,0,0);
 			}
 		}
 	}
@@ -17304,22 +17244,20 @@ BUILDIN_FUNC(cleanmap)
 {
 	const char *map;
 	int16 m = -1;
-	int16 x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-
-	map = script_getstr(st, 2);
+	int16 x0 = 0, y0 = 2);
 	m = map_mapname2mapid(map);
-	if (!m)
+	if( !m )
 		return 1;
 
-    if ((script_lastdata(st) - 2) < 4)
-        map_foreachinmap(atcommand_cleanfloor_sub, m, BL_ITEM);
+    if( (script_lastdata(st) - 2) < 4 )
+        map_foreachinmap(atcommand_cleanfloor_sub,m,BL_ITEM);
     else {
-		x0 = script_getnum(st, 3);
-		y0 = script_getnum(st, 4);
-		x1 = script_getnum(st, 5);
-		y1 = script_getnum(st, 6);
-        if (x0 > 0 && y0 > 0 && x1 > 0 && y1 > 0)
-            map_foreachinarea(atcommand_cleanfloor_sub, m, x0, y0, x1, y1, BL_ITEM);
+		x0 = script_getnum(st,3);
+		y0 = script_getnum(st,4);
+		x1 = script_getnum(st,5);
+		y1 = script_getnum(st,6);
+        if( x0 > 0 && y0 > 0 && x1 > 0 && y1 > 0 )
+            map_foreachinarea(atcommand_cleanfloor_sub,m,x0,y0,x1,y1,tcommand_cleanfloor_sub, m, x0, y0, x1, y1, BL_ITEM);
         else {
             ShowError("cleanarea: invalid coordinate defined!    return SCRIPT_CMD_SUCCESS     return 1;
         }
@@ -17337,39 +17275,39 @@ BUILDIN_FUNC(npcskill)
 	unsigned short skill_level;
 	unsigned int stat_point;
 	unsigned int npc_level;
-	struct npc_data *nd;
-	struct map_session_data *sd;
+	struct 	struct script_data *data;
 
-	skill_id	= script_isstring(st, 2) ? skill_name2id(script_getstr(st, 2)) : script_getnum(st, 2);
-	skill_level	= script_getnum(st, 3);
-	stat_point	= script_getnum(st, 4);
-	npc_level	= script_getnum(st, 5);
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	skill_id  = data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2);
+	skill_level	= script_getnum(st,3);
+	stat_point	= script_getnum(st,4);
+	npc_level	= script_getnum(st,5);
 	sd			= script_rid2sd(st);
 	nd			= (struct npc_data *)map_id2bl(sd->npc_id);
 
-	if (stat_point > battle_config.max_third_parameter) {
-		ShowError("npcskill: stat point exceeded maximum of %d.\n",battle_config.max_third_parameter );
+	if( stat_point > battle_config.max_third_parameter at_point > battle_config.max_third_parameter) {
+		ShowError("npcskill: stat point exceeded maximum);
 		return 1;
 	}
-	if (npc_level > MAX_LEVEL) {
-		ShowError("npcskill: level exceeded maximum of %d.\n", MAX_LEVEL);
+	if( npc_level > MAX_LEVEL ) {
+		ShowError("npcskill: level exceeded maximum of %d.\n",MAX_LEVEL);
 		return 1;
+	}
+	if( sd == NULL || nd == NULL 		return 1;
 	}
 	if (sd == NULL || nd == NULL) //Ain't possible, but I don't trust people.
 		return 1;
 
-	nd->level = npc_level;
-	nd->stat_point = stat_point;
-
-	if (!nd->status.hp)
+	nd->level = n( !nd->status.hp )
 		status_calc_npc(nd,SCO_FIRST);
 	else
 		status_calc_npc(nd,SCO_NONE);
 
-	if (skill_get_inf(skill_id)&INF_GROUND_SKILL)
-		unit_skilluse_pos(&nd->bl, sd->bl.x, sd->bl.y, skill_id, skill_level);
+	if( skill_get_inf(skill_id)&INF_GROUND_SKILL )
+		unit_skilluse_pos(&nd->bl,sd->bl.x,sd->bl.y,skill_id,skill_level);
 	else
-		unit_skilluse_id(	return SCRIPT_CMD_SUCCESS;
+		unit_skilluse_id(&nd->bl,sd->bl.id,skill_id,t_skilluse_id(	return SCRIPT_CMD_SUCCESS;
 }
 
 /* Consumes an, skill_level);
@@ -17386,35 +17324,33 @@ BUILDIN_FUNC(consumeitem)
 	TBL_NPC *nd;
 	TBL_PC *sd;
 	struct script_data *data;
-	struct item_data *item_data;
+	s(sd = script_rid2sd(st)));
+	nullpo_retr(1,(nd = (TBL_NPC *)map_id2bl(sd->npc_id)));
 
-	nullpo_retr(1, (sd = script_rid2sd(st)));
-	nullpo_retr(1, (nd = (TBL_NPC *)map_id2bl(sd->npc_id)));
-
-	data = script_getdata(st, 2);
-	get_val(st, data);
+	data = script_getdata(st,2);
+	get_val(st,data);
 
 	if( data_isstring(data)) {
+		const char *name = conv_str(st,(data)) {
 		const char *name = conv_str(st, data);
 
 		if( (item_data = itemdb_searchname(name)) == NULL ) {
-			ShowError("buildin_consumeitem: Nonexistant item %s requested.\n", name);
+			ShowError("buildin_conumeitem: Nonexistant item %s requested.\n", name);
 			return 1;
 		}
-	} else if( data_isint(data) ) {
+	} else if( dataisint(data) ) {
 		int nameid = conv_num(st, data);
 
 		if( (item_data = itemdb_exists(nameid)) == NULL ) {
-			ShowError("buildin_consumeitem: Nonexistant item %d requested.\n", nameid);
+			ShowError("buildin_connameid);
 			return 1;
 		}
 	} else {
-		ShowError("buildin_consumeitem: invalid data type for argument #1 (%d).", data->type);
+		ShowError("buildin_consumeitem: invalid data type for argument #1 (%d).",data->type);
 		return 1;
 	}
 
-	run_script(i	return SCRIPT_CMD_SUCCESSscript, 0, sd->bl.id, nd->bl.id);
-
+	run_script(item_data->script,0,sd->bl.id,nd->bl.idipt_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 	return 0;
 }
 
@@ -17424,11 +17360,8 @@ BUILDIN_FUNC(consumeitem)
  * stand {"<character name>"};
  * Note: Use readparam(Sitting) which returns 1 or 0 (sitting or standing).
  *-------------------------------------------------------*/
-BUILDIN_FUNC(sit)
-{
-	TBL_PC *sd;
-
-	if( script_hasdata(st, 2) )
+BUILDIN_FUNC(2) )
+		sd = map_nick2sd(script_getstr(st,, 2) )
 		sd = map_nick2sd(script_getstr(st, 2));
 	else
 		sd = script_rid2sd(st);
@@ -17436,18 +17369,16 @@ BUILDIN_FUNC(sit)
 	if( sd == NULL )
 		return 0;
 
-	if( !pc_issit(sd) ) {
-		unit_stop_walking(&sd->bl, 1|4);
+	if( !p1|4);
+		pc_setsit(sd);
+		skill_sit(sd,>bl, 1|4);
 		pc_setsit(sd);
 		sk	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(stand-------------------------*/
-BUILDIN_FUNC(sit)
-{
-	TBL_PC *sd;
-
-	if( script_hasdata(st, 2) )
+BUILDIN_FUNC(2) )
+		sd = map_nick2sd(script_getstr(st,, 2) )
 		sd = map_nick2sd(script_getstr(st, 2));
 	else
 		sd = script_rid2sd(st);
@@ -17455,7 +17386,7 @@ BUILDIN_FUNC(sit)
 	if( sd == NULL)
 		return 0;
 
-	if( pc_issit(sd) ) {
+	if( pc_issi(sd) ) {
 		pc_setstand(sd);
 		skill_sit(sdSCRIPT_CMD_SUCCESS 0);
 		clif_standing(&sd->bl);
@@ -17478,17 +17409,16 @@ BUILDIN_FUNC(countbound)
 	int i, type, j = 0, k = 0;
 	TBL_PC *sd;
 
-	if( (sd = script_rid2sd(st)) == NULL )
-		return 0;
+	if( (sd = script_rid2sd(st)) == NULL ? script_getnum(st,2) : 0;
 
-	type = script_hasdata(st,2)?script_getnum(st,2):0;
+	for( i = 0; a(st,2)?script_getnum(st,2):0;
 
 	for( i = 0;i < MAX_INVENTORY; i++ ) {
 		if( sd->status.inventory[i].nameid > 0 && (
 			(!type && sd->status.inventory[i].bound > 0) ||
 			(type && sd->status.inventory[i].bound == type)
 		) ) {
-			pc_setreg(sd,reference_uid(add_str("@bound_items"), k),sd->status.inventory[i].nameid);
+			pc_setrg(sd,reference_uid(add_str("@bound_items"), k),sd->status.inventory[i].nameid);
 			k++;
 			j += sd->status.inventory[i].amoSCRIPT_CMD_SUCCESSnt;
 		}
@@ -17692,7 +17622,7 @@ BUILDIN_FUNC(party_destroy)
 	}
 
 	ARR_FIND(0,MAX_PARTY,i,party->party.member[i].leader);
-	if( i >= MAX_PARTY || !party->data[i].sd ) { //Leader not online
+	if( i >= MAX_PARTY || !party->>data[i].sd ) { //Leader not online
 		int j;
 		for( j = 0; j < MAX_PARTY; j++ ) {
 			TBL_PC *sd = party->data[j].sd;
@@ -17718,15 +17648,14 @@ BUILDIN_FUNC(party_destroy)
 BUILDIN_FUNC(is_clientver) {
 	TBL_PC *sd = NULL;
 	int type = script_getnum(st,2);
-	int data = script_getnum(st,3);
-	int ret = 0;
-
-	if (script_hasdata(st,4))
+	int da( script_hasdata(st,4) )
 		sd = map_charid2sd(script_getnum(st,4));
 	else
 		sd = script_rid2sd(st);
-	if (sd == NULL) {
-		script_pushint(st,0);
+	if( sdum(st,3);
+
+	if( (bg = bg_team_search(bg_id)) == NULL ) {
+		script_pushint(st,0);;
 		return 0;
 	}
 
@@ -17746,8 +17675,8 @@ BUILDIN_FUNC(is_clientver) {
 * Retrieves server definitions.
 * (see @type in const.txt)
  *------------------------------------------*/
-BUILDIN_FUNC(getserverdef) {
-	int type = script_getnum(st,2);
+BUILDIN_FUNC(getse
+	switch( type nt type = script_getnum(st,2);
 	switch (type) {
 		case 0: script_pushint(st,PACKETVER); break;
 		case 1: script_pushint(st,MAX_LEVEL); break;
@@ -17775,9 +17704,14 @@ BUILDIN_FUNC(montransform) {
 	enum sc_type type;
 	char msg[CHAT_SIZE_MAX];
 	int tick, mob_id, val1, val2, val3, val4;
+	struct script_data *data;
 
-	if ((sd = script_rid2sd(st)) == NULL)
-		return 1bl = map_id2bl(st->rid)) == NULL)
+	if( (sd = script_rid2sd(st)) == NULL )
+		return 1;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	if( data_isstring(data) ULL)
 		return 0;
 
 	if (script_isstring(st,2))
@@ -17786,38 +17720,33 @@ BUILDIN_FUNC(montransform) {
 		mob_id = mobdb_checkid(script_getnum(st,2));
 
 	tick = script_getnum(st,3);
-	type = (sc_type)script_getnum(st,4);
-	val1 = val2 = val3 = val4 = 0;
-
-	if (mob_id == 0) {
+	type = (sc_type)script_getnum( mob_id == 0 ) {
+		if( data_isstring(data)  (mob_id == 0) {
 		if (script_isstring(st,2))
 			ShowWarning("buildin_montransform: Attempted to use non-existing monster '%s'.\n", script_getstr(st,2));
 		else
-			ShowWarning("buildin_montransform: Attempted to use non-existing monster of I0 '%d'.\n", ' cannot be used.\n");
-		return 1;
+			ShowWarning("buildin_montransform: Attempted to use non-existing monster of I0 '%d'.\n"( !(type > SC_NONE && type < SC_MAX) ) {
+		ShowWarning("buildin_montransform: Unsupported status change id %d\n",type);
+		return 0;
 	}
 
-	if (!(type > SC_NONE && type < SC_MAX)) {
-		ShowWarning("buildin_montransform: Unsuppo0ted status change id %d\n",type);
-		return 1;
-	}
-
-	if (script_hasdata(st,5))
+	if( script_hasdata(st,5) )
 		val1 = script_getnum(st,5);
 
-	if (script_hasdata(st,6))
+	if( script_hasdata(st,6) )
 		val2 = script_getnum(st,6);
 
-	if (script_hasdata(st,7))
+	if( script_hasdata(st,7) )
 		val3 = script_getnum(st,7);
 
-	if (script_hasdata(st,8))
-		val4 = scriptob_db *monster =  mob_db(mob_id)ster =  mob_db(mob_id);
+	if( script_hasdata(st,8) )
+		val4 = script_getnum(st,8);
 
-		if (!sd) return 0;
+	if( tick != 0 ) {
+		struct mob_db *monster =  mob_db(mob_id);
 
-		if (battle_config.mon_trans_disable_in_gvg && map_flag_gvg2(sd->bl.m)) {
-			clif_displaymessage(sd->fd,msg_txt(1493)); //Transforming into monster is not allowed in Guild Wars.
+		if( battle_config.mon_trans_disable_in_gvg && map_flag_gvg2(sd->bl.m) ns_disable_in_gvg && map_flag_gvg2(sd->bl.m)) {
+			clif_displaymessage(sd->fd,msg_txt(1493)); //Transforming into monster is not a( sd->disguise d Wars.
 			return 0;
 		}
 
@@ -17849,40 +17778,40 @@ BUILDIN_FUNC(bonus_script) {
 	const char *script_str = NULL;
 	struct script_code *script = NULL;
 
-	if (script_hasdata(st,6))
+	if( script_hasdata(st,6) )
 		sd = map_charid2sd(script_getnum(st,6));
 	else
 		sd = script_rid2sd(st);
 
-	if (sd == NULL)
+	if( sd == NULL )
 		return 0;
 
 	script_str = script_getstr(st,2);
 	dur = 1000 * abs(script_getnum(st,3));
 	FETCH(4,flag);
-	if (script_getnum(st,5) == 1)
+	if( script_getnum(st,5) == 1 )
 	isBuff = false;
 
-	if (!strlen(script_str) || !dur) {
+	if( !strlen(script_str) || !dur ) {
 		//ShowWarning("buildin_bonus_script: Invalid value(s). Skipping...\n");
 		return 0;
 	}
 
 	//Skip duplicate entry
 	ARR_FIND(0,MAX_PC_BONUS_SCRIPT,i,&sd->bonus_script[i] && sd->bonus_script[i].script_str && strcmp(sd->bonus_script[i].script_str,script_str) == 0);
-	if (i < MAX_PC_BONUS_SCRIPT) {
+	if( i < MAX_PC_BONUS_SCRIPT ) {
 		//ShowWarning("buildin_bonus_script: Duplicate entry with bonus '%d'. Skipping...\n",i);
 		return 0;
 	}
 
-	if (!(script = parse_script(script_str,"bonus_script",0,1))) {
+	if( !(script = parse_script(script_str,"bonus_script",0,1)) ) {
 		//ShowWarning("buildin_bonus_script: Failed to parse script '%s'. Skipping...\n",script_str);
 		return 0;
 	}
 
 	//Find the empty slot
 	ARR_FIND(0,MAX_PC_BONUS_SCRIPT,i,!sd->bonus_script[i].script);
-	if (i >= MAX_PC_BONUS_SCRIPT) {
+	if( i >= MAX_PC_BONUS_SCRIPT ) {
 		ShowWarning("buildin_itemscript: Maximum script_bonus is reached (max: %d). Skipping...\n",MAX_PC_BONUS_SCRIPT);
 		return 0;
 	}
@@ -17906,43 +17835,43 @@ BUILDIN_FUNC(vip_status) {
 	TBL_PC *sd;
 	char vip_str[26];
 	time_t now = time(NULL);
-	int type = script_getnum(st, 2);
+	int type = script_getnum(st,2);
 
-	if (script_hasdata(st, 3))
-		sd = map_nick2sd(script_getstr(st, 3));
+	if( script_hasdata(st,3) )
+		sd = map_nick2sd(script_getstr(st,3));
 	else
 		sd = script_rid2sd(st);
 
-	if (sd == NULL)
+	if( sd == NULL )
 		return 0;
 
-	switch(type) {
+	switch( type ) {
 		case 1: //Get VIP status.
-			script_pushint(st, pc_isvip(sd));
+			script_pushint(st,pc_isvip(sd));
 			break;
 		case 2: //Get VIP expire date.
-			if (pc_isvip(sd)) {
+			if( pc_isvip(sd) ) {
 				time_t viptime = sd->vip.time;
-				strftime(vip_str, 24, "%Y-%m-%d %H:%M", localtime(&viptime));
+				strftime(vip_str,24,"%Y-%m-%d %H:%M",localtime(&viptime));
 				vip_str[25] = '\0';
-				script_pushstrcopy(st, vip_str);
+				script_pushstrcopy(st,vip_str);
 			} else
 				script_pushint(st, 0);
 			break;
 		case 3: //Get remaining time.
-			if (pc_isvip(sd)) {
+			if( pc_isvip(sd) ) {
 				time_t viptime_remain = sd->vip.time - now;
 				int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 
-				split_time((int)viptime_remain, &year, &month, &day, &hour, &min, &sec);
-				safesnprintf(vip_str, sizeof(vip_str), "%d-%d-%d %d:%d", year, month, day, hour, min);
-				script_pushstrcopy(st, vip_str);
+				split_time((int)viptime_remain,&year,&month,&day,&hour,&min,&sec);
+				safesnprintf(vip_str,sizeof(vip_str),"%d-%d-%d %d:%d",year,month,day,hour,min);
+				script_pushstrcopy(st,vip_str);
 			} else
-				script_pushint(st, 0);
+				script_pushint(st,0);
 			break;
 	}
 #else
-	script_pushint(st, 0);
+	script_pushint(st,0);
 #endif
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -17955,17 +17884,17 @@ BUILDIN_FUNC(vip_status) {
 BUILDIN_FUNC(vip_time) {
 #ifdef VIP_ENABLE //Would be a pain for scripting npc otherwise
 	TBL_PC *sd;
-	int viptime = script_getnum(st, 2) * 60; //Convert since it's given in minutes.
+	int viptime = script_getnum(st,2) * 60; //Convert since it's given in minutes.
 
-	if (script_hasdata(st, 3))
-		sd = map_nick2sd(script_getstr(st, 3));
+	if (script_hasdata(st,3))
+		sd = map_nick2sd(script_getstr(st,3));
 	else
 		sd = script_rid2sd(st);
 
 	if (sd == NULL)
 		return 0;
 
-	chrif_req_login_operation(sd->status.account_id, sd->status.name, 6, viptime, 7, 0);
+	chrif_req_login_operation(sd->status.account_id,sd->status.name,6,viptime,7,0);
 #endif
 	return SCRIPT_CMD_SUCCESS,100,val1,val2,val3,val4,tick);
 	}
