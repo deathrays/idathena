@@ -3683,7 +3683,7 @@ void run_script_main(struct script_state *st)
 				break;
 		}
 		if (!st->freeloop && cmdcount > 0 && (--cmdcount) <= 0) {
-			ShowError("run_script: infinity loop !\n");
+			ShowError("run_script: too many opeartions being processed non-stop !\n");
 			script_reportsrc(st);
 			st->state = END;
 		}
@@ -11432,8 +11432,9 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 	if((m=map_mapname2mapid(mapname))< 0)
 		return 0;
 
-	if(!(index=mapindex_name2id(str)))
-		returuild_search(check_ID);
+	if(!(index=(check_val){
+		case 1:
+			g = guild_search(check_ID);
 			if (g){
 				for( i=0; i < g->max_member; i++)
 				{
