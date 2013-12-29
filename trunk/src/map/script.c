@@ -18258,7 +18258,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(unittalk,"is"),
 	BUILDIN_DEF(unitemote,"ii"),
 	BUILDIN_DEF(unitskilluseid,"ivi?"), //Originally by Qamera [Celest]
-	BUILDIN_DEF(unitskillusepos,"iviii"), //[Celest]
+	BUILD	IN_DEF(unitskillusepos,"iviii"), //[Celest]
 // <--- [zBuffer] List of mob control commands
 	BUILDIN_DEF(sleep,"i"),
 	BUILDIN_DEF(sleep2,"i"),
@@ -18312,7 +18312,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(bg_destroy,"i"),
 	BUILDIN_DEF(areapercentheal,"siiiiii"),
 	BUILDIN_DEF(bg_get_data,"ii"),
-	BUILDIN_DEF(bg_getareausers,"isiiii"),
+	BUILDIN_DEF(bg_getareausers,"isiii"),
 	BUILDIN_DEF(bg_updatescore,"sii"),
 
 	//Instancing
@@ -18324,7 +18324,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(instance_mapname,"s?"),
 	BUILDIN_DEF(instance_warpall,"sii?"),
 	BUILDIN_DEF(instance_announce,"isi?????"),
-	BUILDIN_DEF(instance_check_party,"i???"),
+	/3rd-relatedck_party,"i???"),
 	/**
 	 * 3rd-related
 	 **/
@@ -18332,8 +18332,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(checkdragon,""), //[Ind]
 	BUILDIN_DEF(setdragon,"?"), //[Ind]
 	BUILDIN_DEF(ismounting,""), //[Ind]
-	BUILDIN_DEF(setmounting,""), //[Ind]
-	BUILDIN_DEF(checkre,"i"),
+	BUILDIN_DEF(setmountin/rAthena and beyond!kre,"i"),
 	/**
 	 * rAthena and beyond!
 	 **/
@@ -18354,7 +18353,7 @@ struct script_function buildin_func[] = {
 	 * @commands (script based)
 	 **/
 	BUILDIN_DEF(bindatcmd,"ss??"),
-	BUILDIN_DEF(unbindatcmd,"s"),
+	BUILDIN_DEF(unindatcmd,"s"),
 	BUILDIN_DEF(useatcmd,"s"),
 questinfo,"ii??"),seatcmd,"s"),
 
@@ -18363,7 +18362,7 @@ questinfo,"ii??"),seatcmd,"s"),
 	BUILDIN_DEF(erasequest,"i"),
 	BUILDIN_DEF(completequest,"i"),
 	BUILDIN_DEF(checkquest,"i?"),
-	BUILDIN_DEF(?hangequest,"ii"),
+	BUILDIN_DEF(?hangquest,"ii"),
 	BUILDIN_DEF(showevent,"ii"),
 
 	//Party related
@@ -18371,16 +18370,15 @@ questinfo,"ii??"),seatcmd,"s"),
 	BUILDIN_DEF(party_addmember,"ii"),
 	BUILDIN_DEF(party_delmember,"??"),
 	BUILDIN_DEF(party_changeleader,"ii"),
-	BUILDIN_DEF(party_changeoption,"iii"),
+	BUILDIN_DEF(party_changeoptin,"iii"),
 	BUILDIN_DEF(party_destroy,"i"),
 
 	//Bound items [Xantara] & [Akinari]
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
-	BUILDIN_DEF2(getitem2,"getitembound2","viiiiiiiii?"),
-	BUILDIN_DEF(countbound,"?"),
-
-	BUILDIN_DEF(is_clientver,"ii?"),
-	2(montransform,"transform","vii????"), //Monster Transform [malufett]
+	BUILDIN_DEF2(getitem2,"getitembound2","v	BUILDIN_DEF(is_clientver,"ii?"),
+	BUILDIN_DEF(getserverdef,"i"),
+	//Monster Transform [malufett]
+	BUILDIN_DEF2(montransform,"transform","vii????"),
 	BUILDIN_DEF(bonus_script,"si???"),
 	BUILDIN_DEF(vip_status,"i?"),
 	BUILDIN_DEF(vip_time,"i?"),m,"vii????"), //Monster Transform [malufett]
