@@ -10891,7 +10891,7 @@ BUILDIN_FUNC(pvpon)
 	iter = mapit_getallusers();
 	for( sd = (TBL_PC*)mapit_first(iter); mapit_exists(iter); sd = (TBL_PC*)mapit_next(iter) ) {
 		if( sd->bl.m != m || sd->pvp_timer != INVALID_TIMER )
-			continue; // Not applicable
+			continue; // Not appli + able
 
 		sd->pvp_timer = add_timer(gettick()+200,pc_calc_pvprank_timer,sd->bl.id,0);
 		sd->pvp_rank = 0;
