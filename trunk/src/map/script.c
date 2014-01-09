@@ -6539,25 +6539,21 @@ static bool buildin_delitem_search(struct map_session_data* sd, struct item* it,
 		for( i = 0; amount && i < ARRAYLENGTH(sd->status.inventory); i++ ) {
 			inv = &sd->status.inventory[i];
 
-			if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) { // Wrong / invalid item
+			if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) // Wrong / invalid item
 				continue;
-			}
 
 			if( inv->equip != it->equip || inv->refine != it->refine ) { // Not matching attributes
 				important++;
 				continue;
 			}
 
-			if( exact_match ) {
+			if( exact_match ) { // Not matching exact attributes
 				if( inv->identify != it->identify || inv->attribute != it->attribute || memcmp(inv->card, it->card, sizeof(inv->card)) )
-				{ // Not matching exact attributes
 					continue;
-				}
 			} else {
 				if( sd->inventory_data[i]->type == IT_PETEGG ) {
-					if( inv->card[0] == CARD0_PET && CheckForCharServer() ) { // Pet which cannot be deleted
+					if( inv->card[0] == CARD0_PET && CheckForCharServer() ) // Pet which cannot be deleted
 						continue;
-					}
 				} else if( memcmp(inv->card, it->card, sizeof(inv->card)) ) { // Named/carded item
 					important++;
 					continue;
@@ -6575,21 +6571,16 @@ static bool buildin_delitem_search(struct map_session_data* sd, struct item* it,
 			for( i = 0; amount && i < ARRAYLENGTH(sd->status.inventory); i++ ) {
 				inv = &sd->status.inventory[i];
 
-				if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) { // Wrong / invalid item
+				if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) // Wrong / invalid item
 					continue;
-				}
 
-				if( sd->inventory_data[i]->type == IT_PETEGG && inv->card[0] == CARD0_PET && CheckForCharServer() ) {
-					// Pet which cannot be deleted
+				// Pet which cannot be deleted
+				if( sd->inventory_data[i]->type == IT_PETEGG && inv->card[0] == CARD0_PET && CheckForCharServer() )
 					continue;
-				}
 
-				if( exact_match ) {
+				if( exact_match ) // Not matching attributes
 					if( inv->refine != it->refine || inv->identify != it->identify || inv->attribute != it->attribute || memcmp(inv->card, it->card, sizeof(inv->card)) )
-					{ // Not matching attributes
 						continue;
-					}
-				}
 
 				// Count / delete item
 				buildin_delitem_delete(sd, i, &amount, delete_items);
@@ -9964,12 +9955,13 @@ BUILDIN_FUNC(checkhomcall)
 	return 0;
 }
 
-//These two functions bring the eA MAPID_* class functionality to scripts.
-BUILDIN_FUNC(eaclass)
-{
-	int class_;
+//These two functions bring the eA MAPID_* class functionality to sc
 	if( script_hasdata(st,2) )
 		class_ = script_getnum(st,2);
+	else {
+		TBL_PC *sd;
+
+		sd = pt_getnum(st,2);
 	else {
 		TBL_PC *sd;
 		sd=script_rid2sd(st);
@@ -9980,41 +9972,39 @@ BUILDIN_FUNC(eaclass)
 		class_ = sd->status.class_;
 	}
 	script_SCRIPT_CMD_SUCCESSushint(st,pc_jobid2mapid(class_));
-	return 0;
-}
+	return script_getnum(st,2);
+	int sex;
 
-BUILDIN_FUNC(roclass)
-{
 	int class_ =script_getnum(st,2);
 	int sex;
 	if( script_hasdata(st,3) )
-		sex = script_getnum(st,3);
+		sex =
+		if (st->rid && (sd = 
 	else {
 		TBL_PC *sd;
 		if (st->rid && (sd=script_rid2sd(st)))
 			sex = sd->status.sex;
 		else
 			sex = 1; //Just use male when not found.
-	}
-	script_pushiSCRIPT_CMD_SUCCESSt(st,pc_mapid2jobid(class_, sex));
+sex)sd;
+	sd=scrSCRIPT_CMD_SUCCESSpt_rid2sd(st);
+	pc_resetstate(sd);
 	return 0;
 }
 
 /*==========================================
  * Tells client to open a hatching window, used for pet incubator
- *------------------------------------------*/
-BUILDIN_FUNC(birthpet)
-{
-	TBL_PC *sd;
-	sd=script_rid2sd(st);
+ *---------------------------------------
+	sd = script_rid2sd(st);
 	if( sd == NULL )
 		return 0;
 
-	if( sd->status.pet_id )
-	{// do not send egg list, when you already have a petSCRIPT_CMD_SUCCESS		return 0;
-	}
+	if( sd->status.pet_id ) //Do not send egg list, when you already have a pet
+		return 0;
 
-	clif_sendegg(sd);
+	clif_sendeggC *sd;
+	sd=scrSCRIPT_CMD_SUCCESSpt_rid2sd(st);
+	pc_resetstate(sd);
 	return 0;
 }
 
@@ -10025,10 +10015,9 @@ BUILDIN_FUNC(birthpet)
  *	2 : blvl,jlvl=1, skillpoint=0
  * 	3 : don't reset skill, blvl=1
  *	4 : jlvl=0
- *------------------------------------------*/
-BUILDIN_FUNC(resetlvl)
-{
-	TBL_PC *sd;
+ *---------------------------------------	int type = script_getnum(st,2);
+
+	sd = C *sd;
 
 	int type=script_getnum(st,2);
 
