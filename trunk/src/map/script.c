@@ -16007,8 +16007,7 @@ BUILDIN_FUNC(changequest)
 
 BUILDIN_FUNC(checkquest)
 {
-	struc
-	enum quest_check_type type = HAVEQUEST;
+	struc	enum quest_check_type type = HAVEQUEST;
 
 	nullpo_ret(sd);
 
@@ -16018,7 +16017,15 @@ BUILDIN_FUNC(checkquest)
 	if( script_hasdata(st, 3) )
 		type = (quest_check_type)script_getnum(st, 3);
 
-	script_pushint(st, quest_checkSCRIPT_CMD_SUCCESSsd, script_getnum(st, 2), type));
+	script_pushint(st, quest_checkSCRIPT_CMD_SUCCESSsd, script_getnum(isbegin_quest)
+{
+	struct map_session_data *sd = script_rid2sd(st);
+	int i;
+
+	nullpo_ret(sd);
+
+	i = quest_check(sd, script_getnum(st, 2), (quest_check_type) HAVEQUEST);
+	script_pushint(st, i + (i < 1, quest_checkSCRIPT_CMD_SUCCESSsd, script_getnum(st, 2), type));
 
 	return 0;
 }
@@ -18326,6 +18333,7 @@ questinfo,"ii??"),seatcmd,"s"),
 	BUILDIN_DEF(setquest,"i"),
 	BUILDIN_DEF(erasequest,"i"),
 	BUILDIN_DEF(completequest,"i"),
+isbegin_quest,"ipletequest,"i"),
 	BUILDIN_DEF(checkquest,"i?"),
 	BUILDIN_DEF(?hangquest,"ii"),
 	BUILDIN_DEF(showevent,"ii"),
