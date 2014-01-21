@@ -8972,7 +8972,10 @@ BUILDIN_FUNC(addtimer)
 	if( sd == NULL )
 		return 0;
 
-	pc_addeventtimer(sd,tick,event);
+	if( !pc_addeventtimer(sd,tick,event) ) {
+		ShowWarning("buildin_addtimer: Event timer is full, can't add new event timer. (cid:%d timer:%s)\n",sd->status.char_id,event);
+		return 1;
+	}
 	return SCRIPT_CMD_SUCCESS;
 }
 /*==========================================
@@ -11410,13 +11413,11 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 	x=script_getnum(st,4);
 	y=script_getnum(st,5);
 	if(script_hasdata(st,7)){
-		check_val=script_getnum(st,6);
-		check_ID=script_getnum(st,7);
-	}
-
-	if((m=map_mapname2mapid(mapname))< 0)
+		check_val=script_getnum(sf((m=map_mapname2mapid(mapname))< 0)
 		return 0;
-n 0;
+
+	if(!(index=mapindex_name2id(str)))
+		return 0;
 
 	switch(check_val){
 		case 1:
@@ -17310,13 +17311,11 @@ BUILDIN_FUNC(npcskill)
 		unit_skilluse_id(&nd->bl,sd->bl.id,skill_id,t_skilluse_id(	return SCRIPT_CMD_SUCCESS;
 }
 
-/* Consumes an, skill_level);
-
-	return 0;
-}
-
-/* Consumes a item
- * consumeitem <item id>
+/** Consumes an item
+ * consumeitem <item id>;
+ * consumeitem "<item name>";
+ * @param item: Item ID or name
+ item <item id>
  * consumeitem "<item name>"
 */
 BUILDIN_FUNC(consumeitem)
@@ -17350,16 +17349,13 @@ BUILDIN_FUNC(consumeitem)
 		return 1;
 	}
 
-	run_script(item_data->script,0,sd->bl.id,nd->bl.idipt_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
-	return 0;
-}
-
-/*=======================================================
+	run_script(item_data->script,0,sd->bl.id,nd->bl.idipt_pushintSCRIPT_CMD_SUCCESSst,part* Makes====================================
  * Make a player sit/stand.
  * sit {"<character name>"};
  * stand {"<character name>"};
- * Note: Use readparam(Sitting) which returns 1 or 0 (sitting or standing).
- *-------------------------------------------------------*/
+ * Note: Use readparam(Sitting) wh @param name: Player name that will be invoked
+ */
+BUILDIN_FUNC(sit-------------------------*/
 BUILDIN_FUNC(2) )
 		sd = map_nick2sd(script_getstr(st,, 2) )
 		sd = map_nick2sd(script_getstr(st, 2));
@@ -17376,6 +17372,9 @@ BUILDIN_FUNC(2) )
 		sk	return SCRIPT_CMD_SUCCESS;
 }
 
+/** Makes player to stand
+ * @param name: Player name that will be set
+ */
 BUILDIN_FUNC(stand-------------------------*/
 BUILDIN_FUNC(2) )
 		sd = map_nick2sd(script_getstr(st,, 2) )
@@ -17389,21 +17388,11 @@ BUILDIN_FUNC(2) )
 	if( pc_issi(sd) ) {
 		pc_setstand(sd);
 		skill_sit(sdSCRIPT_CMD_SUCCESS 0);
-		clif_standing(&sd->bl);
-	}
-
-	return 0;
-}
-
-/*==========================================
+		* Creates an array of bounded item IDs
  * countbound {<type>};
- * Creates an array of bounded item IDs
- * Returns amount of items found
- * Type:
- *	1 - Account Bound
- *	2 - Guild Bound
- *	3 - Party Bound
- *------------------------------------------*/
+ * @param type: 1 - Account Bound; 2 - Guild Bound; 3 - Party Bound
+ * @return amt: Amount of items found
+  *------------------------------------------*/
 BUILDIN_FUNC(countbound)
 {
 	int i, type, j = 0, k = 0;
@@ -17421,24 +17410,19 @@ BUILDIN_FUNC(countbound)
 			pc_setrg(sd,reference_uid(add_str("@bound_items"), k),sd->status.inventory[i].nameid);
 			k++;
 			j += sd->status.inventory[i].amoSCRIPT_CMD_SUCCESSnt;
-		}
-	}
-
-	script_pushint(st,j);
-	return 0;
-}
-
-/*==========================================
+		}* Creates new party
  * party_create "<party name>"{,<char id>{,<item share>{,<item share type>}}};
- * <item share>: 0-Each Take. 1-Party Share
- * <item share type>: 0-Each Take. 1-Even Share
+ * @param party_name: String of party name that will be created
+ * @param char_id: Chara that will be leader of this new party. If no char_id specified, the invoker will be party leader
+ * @param item_share: 0-Each Take. 1-Party Share
+ * @param item_share_type: 0-Each Take. 1-Even Share
+ * @return val: Result value 0-Each Take. 1-Even Share
  * Return values:
  *	-3	- party name is exist
  *	-2	- player is in party already
  *	-1	- player is not found
  *	0	- unknown error
- *	1	- success, will return party id $@party_create_id
- *------------------------------------------*/
+ *	1	- succes*------------------------------------------*/
 BUILDIN_FUNC(party_create)
 {
 	char party_name[NAME_LENGTH];
@@ -17455,11 +17439,15 @@ BUILDIN_FUNC(party_create)
 		return 0;
 	}
 
-	safestrncpy(party_name,script_getstr(st,2),NAME_LENGTH);
-	trim(party_name);
+	safestrncpy(party_name,script_ge
 	if( party_searchname(party_name) ) {
 		script_pushint(st,-3);
 		return 0;
+	}
+
+	if( script_getnum(st,4) )
+		item1 = 1;
+;
 	}
 	if( script_getnum(st,4) )
 		item1 = 1;
@@ -17467,21 +17455,16 @@ BUILDIN_FUNC(party_create)
 		item2 = 1;
 
 	party_create_byscript = 1;
-	script_pushint(st,party_SCRIPT_CMD_SUCCESSreate(sd,party_name,item1,item2));
-	return 0;
-}
-
-/*==========================================
+	script_pushint(st,party_SCRIPT_CMD_SUCCESSreate(s* Adds player to specified party
  * party_addmember <party id>,<char id>;
- * Adds player to specified party
+ * @param party_id: The party that will be entered by player
+ * @param char_id: Char id of player that will be joined to the party
+ * @return val: Result value player to specified party
  * Return values:
  *	-4	- party is full
  *	-3	- party is not found
  *	-2	- player is in party already
- *	-1	- player is not found
- *	0	- unknown error
- *	1	- success
- *------------------------------------------*/
+ *	-1	- player is not *------------------------------------------*/
 BUILDIN_FUNC(party_addmember)
 {
 	int party_id = script_getnum(st,2);
@@ -17508,21 +17491,15 @@ BUILDIN_FUNC(party_addmember)
 		return 0;
 	}
 	sd->party_invite = party_id;
-	script_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
-	return 0;
-}
-
-/*==========================================
+	script_pushintSCRIPT_CMD_SUCCESSst,part* Removes player from his/her party. If party_id and char_id is empty remove the invoker from his/her party
  * party_delmember {<char id>,<party_id>};
- * Removes player from his/her party. If party_id and char_id is empty
- * remove the invoker from his/her party
+ * @param: char_id
+ * @param: party_id
+ * @return val: Result valueinvoker from his/her party
  * Return values:
  *	-3	- player is not in party
  *	-2	- party is not found
- *	-1	- player is not found
- *	0	- unknown error
- *	1	- success
- *------------------------------------------*/
+ *	-1	- player is not *------------------------------------------*/
 BUILDIN_FUNC(party_delmember)
 {
 	TBL_PC *sd = NULL;
@@ -17534,21 +17511,16 @@ BUILDIN_FUNC(party_delmember)
 	if( sd || (script_getnum(st,2) && (sd = map_charid2sd(script_getnum(st,2)))) )
 		script_pushint(st,party_removemember2(sd,0,0));
 	else
-		script_pushint(st,party_removemember2(NULL,script_SCRIPT_CMD_SUCCESSetnum(st,2),script_getnum(st,3)));
-	return 0;
-}
-
-/*==========================================
+		script_pushint(st,party_removemember2(NULL,script_SCRIPT_CMD_SUCCESSetnum(s* Changes party leader of specified party (even the leader is offline)
  * party_changeleader <party id>,<char id>;
- * Can change party leader even the leader is not online
+ * @param party_id: ID of party
+ * @param char_id: Char ID of new leader
+ * @return val: Result valuen the leader is not online
  * Return values:
  *	-4	- player is party leader already
  *	-3	- player is not in this party
  *	-2	- player is not found
- *	-1	- party is not found
- *	0	- unknown error
- *	1	- success
- *------------------------------------------*/
+ *	-1	- party is not *------------------------------------------*/
 BUILDIN_FUNC(party_changeleader)
 {
 	int i, party_id = script_getnum(st,2);
@@ -17581,17 +17553,12 @@ BUILDIN_FUNC(party_changeleader)
 		return 0;
 	}
 
-	script_pushint(stSCRIPT_CMD_SUCCESSparty_changeleader(sd,tsd,party));
-	return 0;
-}
-
-/*==========================================
+	script_pushint(stSCRIPT_CMD_SUCCESSparty_c* Changes party option
  * party_changeoption <party id>,<option>,<flag>;
- * Return values:
- *	-1	- party is not found
- *	0	- invalid option
- *	1	- success
- *------------------------------------------*/
+ * @param party_id: ID of party that will be changed
+ * @param option: Type of option
+ * @return val: -1 - party is not found, 0 - invalid option, 1 - success
+  *------------------------------------------*/
 BUILDIN_FUNC(party_changeoption)
 {
 	struct party_data *party;
@@ -17600,17 +17567,13 @@ BUILDIN_FUNC(party_changeoption)
 		script_pushint(st,-1);
 		return 0;
 	}
-	script_pushint(st,party_setoption(party,script_SCRIPT_CMD_SUCCESSetnum(st,3),script_getnum(st,4)));
-	return 0;
-}
-
-/*==========================================
+	script_pushint(st,party_setoption(party,script_SCRIPT_CMD_SUCCESSetnum(s* Destroys party with party id.
  * party_destroy <party id>;
- * Destroys party with party id.
- * Return values:
- *	0	- failed
- *	1	- success
- *------------------------------------------*/
+ * @param party_id: ID of party that will be destroyed
+ * @return val: Result value
+ *  0  - failed
+ *  1  - success
+  *------------------------------------------*/
 BUILDIN_FUNC(party_destroy)
 {
 	int i;
@@ -17634,17 +17597,11 @@ BUILDIN_FUNC(party_destroy)
 		party_broken(party->party.party_id);
 		script_pushint(st,1);
 	} else //Leader leave = party broken
-		script_pushint(SCRIPT_CMD_SUCCESSt,party_leave(party->data[i].sd));
-	return 0;
-}
-
-/*==========================================
-* Checks if a player's client version meets a required version or date.
-* @type :
-*  0 - check by version number
-*  1 - check by date
-* @return true/false
- *------------------------------------------*/
+		script_pushint(SCRIPT_CMD_SUCCESSt,party*==========================================
+* Checks if a player's clien * @param type: 0 - check by version number; 1 - check by date
+ * @param data: Input
+ * @return val: 1 - true, 0 - false
+  *------------------------------------------*/
 BUILDIN_FUNC(is_clientver) {
 	TBL_PC *sd = NULL;
 	int type = script_getnum(st,2);
@@ -17666,15 +17623,9 @@ BUILDIN_FUNC(is_clientver) {
 		case 1:
 			ret = (sd->packet_ver >= date2version(data)) ? 1 : 0;
 		SCRIPT_CMD_SUCCESSbreak;
-	}
-	script_pushint(st,ret);
-	return 0;
-}
-
-/*==========================================
-* Retrieves server definitions.
-* (see @type in const.txt)
- *------------------------------------------*/
+* Retrieves server definitions
+ * @param type: See in const.txt
+  *------------------------------------------*/
 BUILDIN_FUNC(getse
 	switch( type nt type = script_getnum(st,2);
 	switch (type) {
@@ -17692,13 +17643,17 @@ BUILDIN_FUNC(getse
 		case 9: script_pushint(st,MAX_BG_MEMBERS); break;
 		default:
 			ShowWarning("buildin_getserverdef: unknown type %d.\n",type);
-		SCRIPT_CMD_SUCCESSscript_pushint(st,0);
-			break;
-	}
-	return 0;
-}
-
-/* Turns a player into a monster antransform <monster name/ID>, <duration>, <sc type>, <val1>, <val2>, <val3>, <val4>; */
+		SCRIPT_CMD_SUCCESSscript_* Turns a player into a monster and grants SC attribute effect. [malufett]
+ * montransform <monster name/ID>, <duration>, <sc type>, <val1>, <val2>, <val3>, <val4>;
+ * @param monster: Monster ID or name
+ * @param duration: Transform duration in millisecond (ms)
+ * @param sc_type: Type of SC that will be affected during the transformation
+ * @param val1: Value for SC
+ * @param val2: Value for SC
+ * @param val3: Value for SC
+ * @param val4: Value for SC
+ * @return val: 1 - success, 0 - failed
+ */
 BUILDIN_FUNC(montransform) {
 	TBL_PC *sd;
 	enum sc_type type;
@@ -17707,7 +17662,7 @@ BUILDIN_FUNC(montransform) {
 	struct script_data *data;
 
 	if( (sd = script_rid2sd(st)) == NULL )
-		return 1;
+		return 0;
 
 	data = script_getdata(st,2);
 	get_val(st,data); //Convert into value in case of a variable
@@ -17770,7 +17725,8 @@ BUILDIN_FUNC(montransform) {
  * @param flag
  * @param icon
  * @param char_id
- **/
+ * @return val: 1 - success, 0 - failed
+ */
 BUILDIN_FUNC(bonus_script) {
 	uint8 i, type = 0;
 	uint16 flag = 0;
@@ -17795,7 +17751,7 @@ BUILDIN_FUNC(bonus_script) {
 	FETCH(6,icon);
 
 	if( script_str[0] == '\0' || !dur ) {
-		//ShowWarning("buildin_bonus_script: Invalid value(s). Skipping...\n");
+		//ShowWarning("buildin_bonus_script: Invalid script. Skipping...\n");
 		return 0;
 	}
 
@@ -17803,19 +17759,19 @@ BUILDIN_FUNC(bonus_script) {
 	ARR_FIND(0,MAX_PC_BONUS_SCRIPT,i,&sd->bonus_script[i] && sd->bonus_script[i].script_str && strcmp(sd->bonus_script[i].script_str,script_str) == 0);
 	if( i < MAX_PC_BONUS_SCRIPT ) {
 		//ShowWarning("buildin_bonus_script: Duplicate entry with bonus '%d'. Skipping...\n",i);
-		return 0;
+		return 1;
 	}
 
 	if( !(script = parse_script(script_str,"bonus_script",0,1)) ) {
-		//ShowWarning("buildin_bonus_script: Failed to parse script '%s'. Skipping...\n",script_str);
+		ShowWarning("buildin_bonus_script: Failed to parse script '%s' (cid:%d). Skipping...\n",script_str,sd->status.char_id);
 		return 0;
 	}
 
 	//Find the empty slot
 	ARR_FIND(0,MAX_PC_BONUS_SCRIPT,i,!sd->bonus_script[i].script);
 	if( i >= MAX_PC_BONUS_SCRIPT ) {
-		ShowWarning("buildin_itemscript: Maximum script_bonus is reached (max: %d). Skipping...\n",MAX_PC_BONUS_SCRIPT);
-		return 0;
+		ShowWarning("buildin_itemscript: Maximum script_bonus is reached (cid:%d max: %d). Skipping...\n",sd->status.char_id,MAX_PC_BONUS_SCRIPT);
+		return 1;
 	}
 
 	//Add the script data
@@ -17833,9 +17789,11 @@ BUILDIN_FUNC(bonus_script) {
 	return SCRIPT_CMD_SUCCESS;
 }
 
-/* Returns various information about a player's VIP status.
+/** Returns various information about a player's VIP status. Need to enable VIP system
  * vip_status <type>,{"<character name>"};
- * Note: VIP System needs to be enabled.
+ * @param type: Info type, 1: VIP status, 2: Expired date, 3: Remaining time
+ * @param name: Character name (Optional)
+ * @return val: 1 - success, 0 - failed
  */
 BUILDIN_FUNC(vip_status) {
 #ifdef VIP_ENABLE
@@ -17883,10 +17841,11 @@ BUILDIN_FUNC(vip_status) {
 	return SCRIPT_CMD_SUCCESS;
 }
 
-/* Adds or removes VIP time in minutes.
+/** Adds or removes VIP time in minutes. Need to enable VIP system
  * vip_time <time in mn>,{"<character name>"};
- * If time < 0 remove time, else add time.
- * Note: VIP System needs to be enabled. 
+ * @param time: VIP duration in minutes. If time < 0 remove time, else add time.
+ * @param name: Character name (optional)
+ * @return val: 1 - success, 0 - failed
  */
 BUILDIN_FUNC(vip_time) {
 #ifdef VIP_ENABLE //Would be a pain for scripting npc otherwise
