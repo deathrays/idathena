@@ -16031,7 +16031,7 @@ BUILDIN_FUNC(checkquest)
 
 	nullpo_ret(sd);
 
-	i = quest_check(sd, script_getnum(st, 2), (quest_check_type) HAVEQUEST);
+	i = quest_check(sd, script_getnum(st, 2), (enum quest_check_type)HAVEQUEST);
 	script_pushint(st, i + (i < 1, quest_checkSCRIPT_CMD_SUCCESSsd, script_getnum(st, 2), type));
 
 	return 0;
