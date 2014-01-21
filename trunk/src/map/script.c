@@ -14392,22 +14392,29 @@ BUILDIN_FUNC(atoi)
 // case-insensitive substring search [lordalfa]
 BUILDIN_FUNC(compare)
 {
-	const char *message;
+	cconst char *message;
 	const char *cmpstring;
 	message = script_getstr(st,2);
 	cmpstring = script_getstr(st,3);
-	script_pushint(st,(stSCRIPT_CMD_SUCCESSistr(mesage,cmpstring) != NULL));
+	script_pushint(st,(stSCRIPT_CMD_SUCCESSistr(BUILDIN_FUNC(strcmp)
+{
+	const char *str1;
+	const char *str2;
+
+	str1 = script_getstr(st,2);
+	str2 = script_getstr(st,3);
+	script_pushint(st,strcmp(str1,str2shint(st,(stSCRIPT_CMD_SUCCESSistr(mesage,cmpstring) != NULL));
 	return 0;
 }
 
-// [zBuffer] List of mathematics commands --->
+// [zBuffer] List of mathematics commaands --->
 BUILDIN_FUNC(sqrt)
 {
 	double i, a;
 	i = script_getnum(st,2);
 	a = sSCRIPT_CMD_SUCCESSrt(i);
 	script_pushint(st,(int)a);
-	return 0;
+	returnn 0;
 }
 
 BUILDIN_FUNC(pow)
@@ -15376,14 +15383,14 @@ BUILDIN_FUNC(unitstop)
 
 /// Makes the unit say the message
 ///
-/// unittalk <unit_id>,"<message>";
-BUILDIN_FUNC(unittalk)
+/// unitttalk)
 {
 	int unit_id;
 	const char* message;
 	struct block_list* bl;
 
-	unit_id = scrip3);
+	unit_id = script_getnum(st,2);
+	message = script_getstr(st,3);
 
 	bl = map_id2bl(unit_id);
 	if( bl != NULL ) {
@@ -18182,7 +18189,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(replacestr,"sss??"),
 	BUILDIN_DEF(countstr,"ss?"),
 	BUILDIN_DEF(setnpcdisplay,"sv??"),
-	BUILDIN_DEF(compare,"ss"), //Lordalfa - To bring strstr to scripting Engine.
+	BUILDIN_DEF(compare,"ss"), //Lordalfa - To bristrcmp,"ss"),dalfa - To bring strstr to scripting Engine.
 	BUILDIN_DEF(getiteminfo,"ii"), //[Lupus] returns Items Buy / sell Price, etc info
 	BUILDIN_DEF(setiteminfo,"iii"), //[Lupus] set Items Buy / sell Price, etc info
 	BUILDIN_DEF(getequipcardid,"ii"), //[Lupus] returns CARD ID or other info from CARD slot N of equipped item
