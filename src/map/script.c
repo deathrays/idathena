@@ -16909,7 +16909,7 @@ BUILDIN_FUNC(setmounting) {
 	if( (sd = script_rid2sd(st)) == NULL )
 		return 0;
 	if( sd->sc.option&(OPTION_WUGRIDER|OP {
-		clif_msgtable(sd->fd,0x78b);
+		clif_msgtable(sd->fd,NEED_REINS_OF_MOUNT);
 		script_pushint(st,0); //Can't mount with one of these
 	} int(st,0); //Can't mount with one of these
 	else {
