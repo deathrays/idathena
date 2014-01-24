@@ -5952,7 +5952,8 @@ int checkweight_sub(TBL_PC *sd,int nbargs,int32 *eitemid,int32 *eamount)
 {
 	struct item_data* id = NULL;
 	int nameid, amount;
-	uint16 amount2 = 0, slots, weight = 0, i;
+	uint32 weight = 0;
+	uint16 amount2 = 0, slots, i;
 
 	slots = pc_inventoryblank(sd); //NB of empty slot
 
@@ -11410,7 +11411,7 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 	x=script_getnum(st,4);
 	y=script_getnum(st,5);
 	if(script_hasdata(st,7)){
-		check_vanum(st,7);
+		ript_getnum(st,7);
 	}
 
 	if((m=map_mapname2mapid(mapname))< 0)
@@ -15381,7 +15382,8 @@ BUILDIN_FUNC(unitstop)
 	return 0;
 }
 
-/// Makes the unit say the messBUILDIN_FUNC(unittalk)
+/// Makes the unit say sage>";
+BUILDIN_FUNC(unittalk)
 {
 	int unit_id;
 	const char* message;
