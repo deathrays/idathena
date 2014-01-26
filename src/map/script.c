@@ -6393,12 +6393,12 @@ BUILDIN_FUNC(getnameditem)
 		return 0;
 	}
 
-	data=script_getdata(st,3);
+	data = script_getdata(st,3);
 	get_val(st,data);
 	if( data_isstring(data) ) //Char Name
-		tsd=map_nick2sd(conv_str(st,data));
-	else	//Char Id was given
-		tsd=map_charid2sd(conv_num(st,data));
+		tsd = map_nick2sd(conv_str(st,data));
+	else //Char Id was given
+		tsd = map_charid2sd(conv_num(st,data));
 	
 	if( tsd == NULL ) { //Failed
 		script_pushint(st,0);
@@ -6406,15 +6406,15 @@ BUILDIN_FUNC(getnameditem)
 	}
 
 	memset(&item_tmp,0,sizeof(item_tmp));
-	item_tmp.nameid=nameid;
-	item_tmp.amount=1;
-	item_tmp.identify=1;
-	item_tmp.card[0]=CARD0_CREATE; //we don't use 255! because for example SIGNED WEAPON shouldn't get TOP10 BS Fame bonus [Lupus]
-	item_tmp.card[2]=tsd->status.char_id;
-	item_tmp.card[3]=tsd->status.char_id >> 16;
+	item_tmp.nameid = nameid;
+	item_tmp.amount = 1;
+	item_tmp.identify = 1;
+	item_tmp.card[0] = CARD0_CREATE; //We don't use 255! because for example SIGNED WEAPON shouldn't get TOP10 BS Fame bonus [Lupus]
+	item_tmp.card[2] = tsd->status.char_id;
+	item_tmp.card[3] = tsd->status.char_id>>16;
 	if(pc_additem(sd,&item_tmp,1,LOG_TYPE_SCRIPT)) {
 		script_pushint(st,0);
-		return 0;	//Failed to add item, we will not drop if they don't fit
+		return 0; //Failed to add item, we will not drop if they don't fit
 	}
 
 	script_pushint(st,1);
@@ -9531,16 +9531,17 @@ BUILDIN_FUNC(getareadropitem)
 
 	data=script_getdata(st,7);
 	get_val(st,data);
-	if( data_isstring(data) ){
-		const char *name=conv_str(st,data);
+	if( data_isstring(data) ) {
+		const char *name = conv_str(st,data);
 		struct item_data *item_data = itemdb_searchname(name);
-		item=UNKNOWN_ITEM_ID;
-		if( item_data )
-			item=item_data->nameid;
-	}else
-		item=conv_num(st,data);
 
-	if( (m=map_mapname2mapid(str))< 0){
+		item = UNKNOWN_ITEM_ID;
+		if( item_data )
+			item = item_data->nameid;
+	} else
+		item = conv_num(st,data);
+
+	if( (m = map_mapname2mapid(str))< 0) {
 		script_pushint(st,-1);
 		return 0;
 	}
@@ -11409,9 +11410,8 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 	mapname=script_getstr(st,2);
 	str=script_getstr(st,3);
 	x=script_getnum(st,4);
-	y=script_getnum(st,5);
-	if(script_hasdata(st,7)){
-		ript_getnum(st,7);
+	y=script_getnum(st,5);pt_getnum(st,6);
+		check_ID=script_getnum(st,7);
 	}
 
 	if((m=map_mapname2mapid(mapname))< 0)
@@ -12947,7 +12947,7 @@ BUILDIN_FUNC(npcwalkto)
 		if(!nd->status.hp)
 			status_calc_npc(nd,SCO_FIRST);
 		else
-			status_calc_npc(nd,SC	return SCRIPT_CMD_SUCCESS	unit_walktoxy(&nd->bl,x,y,0);
+			status_calc_npc(nd,SC	return SCRIPT_CMD_SUCCESS	unit_wSlktoxy(&nd->bl,x,y,0);
 	}
 
 	return 0;
@@ -15379,10 +15379,8 @@ BUILDIN_FUNC(unitstop)
 		SCRIPT_CMD_SUCCESS((TBL_MOB*)bl)->target_id = 0;
 	}
 
-	return 0;
-}
-
-/// Makes the unit say sage>";
+	return/
+/// unittalk <unit_id>,"<message>";
 BUILDIN_FUNC(unittalk)
 {
 	int unit_id;
