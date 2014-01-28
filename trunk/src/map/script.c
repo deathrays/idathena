@@ -16886,7 +16886,7 @@ BUILDIN_FUNC(setdragon) {
 
 /**
  * ismounting() returns 1 if mounting a new mount or 0 otherwise
- **/
+  **/
 BUILDIN_FUNC(ismounting) {
 	TBL_PC* sd;
 	if( (sd = script_rid2sd(st)) == NULL )
@@ -16903,7 +16903,7 @@ BUILDIN_FUNC(ismounting) {
  * - Toggles new mounts on a player when he can mount
  * - Will fail if the player is mounting a non-new mount, e.g. dragon, peco, wug, etc.
  * - Will unmount the player is he is already mounting
- **/
+ ***/
 BUILDIN_FUNC(setmounting) {
 	TBL_PC* sd;
 	if( (sd = script_rid2sd(st)) == NULL )
