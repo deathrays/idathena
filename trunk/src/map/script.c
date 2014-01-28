@@ -17332,15 +17332,11 @@ BUILDIN_FUNC(npcskill)
  * consumeitem "<item name>";
  * @param item: Item ID or name
  item <item id>
- * consumeitem "<item name>"
-*/
-BUILDIN_FUNC(consumeitem)
-{
-	TBL_NPC *nd;
-	TBL_PC *sd;
+ * consumeitem "<itemPC *sd;
 	struct script_data *data;
-	s(sd = script_rid2sd(st)));
-	nullpo_retr(1,(nd = (TBL_NPC *)map_id2bl(sd->npc_id)));
+	struct item_data *item_data;
+
+	nullpo_retr(1,(sd = script_rid2sd(st)));
 
 	data = script_getdata(st,2);
 	get_val(st,data);
@@ -17365,7 +17361,7 @@ BUILDIN_FUNC(consumeitem)
 		return 1;
 	}
 
-	run_script(item_data->script,0,sd->bl.id,nd->bl.idipt_pushintSCRIPT_CMD_SUCCESSst,part* Makes====================================
+	run_script(item_data->script,0,sd->bl.id,0ipt_pushintSCRIPT_CMD_SUCCESSst,part* Makes====================================
  * Make a player sit/stand.
  * sit {"<character name>"};
  * stand {"<character name>"};
