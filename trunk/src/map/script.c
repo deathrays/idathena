@@ -14129,7 +14129,8 @@ BUILDIN_FUNC(implode)
 		*(buf_p-len+1) = '*';
 	}
 
-	script_pushint(st, arg);
+	if(!strcmp(str, "")) script_pushint(st, -1);
+	else script_pushint(st, arg);
 	if(buf) aFree(buf);
 	if(ref_str) aFree(ref_str);
 
@@ -15376,10 +15377,11 @@ BUILDIN_FUNC(unitstop)
 		unit_stop_attack(bl);
 		unit_stop_walking(bl,4);
 		if( bl->type == BL_MOB )
-		SCRIPT_CMD_SUCCESS((TBL_MOB*)bl)->target_id = 0;
-	}
+		SCRIPT_CMD_SUCCESS;
+}
 
-	return/
+/// Makes the unit say the message
+///
 /// unittalk <unit_id>,"<message>";
 BUILDIN_FUNC(unittalk)
 {
