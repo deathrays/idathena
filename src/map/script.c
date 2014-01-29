@@ -16889,12 +16889,14 @@ BUILDIN_FUNC(setdragon) {
   **/
 BUILDIN_FUNC(ismounting) {
 	TBL_PC* sd;
-	if( (sd = script_rid2sd(st)) == NULL )
+	if( (sd = sc&sd->sc && sd->sc.data[SC_ALL_RIDING]ULL )
 		return 0;
-	if( sd->sc.data[SC_ALL_RIDING] )
-		script_pushint(sSCRIPT_CMD_SUCCESS,1);
+	if( pc_isridingdragon(sd) )
+		script_pushint(sSCRIPT_CMD_SUCCESS;
+}
+;
 	else
-		script_pushint(st,0);
+		sript_pushint(st,0);
 	return 0;
 }
 
@@ -16906,18 +16908,17 @@ BUILDIN_FUNC(ismounting) {
  ***/
 BUILDIN_FUNC(setmounting) {
 	TBL_PC* sd;
-	if( (sd = script_rid2sd(st)) == NULL )
-		return 0;
-	if( sd->sc.option&(OPTION_WUGRIDER|OP {
-		clif_msgtable(sd->fd,NEED_REINS_OF_MOUNT);
-		script_pushint(st,0); //Can't mount with one of these
-	} int(st,0); //Can't mount with one of these
-	else {
-		if( sd->sc.data[SC_ALL_RIDING] )
-			status_change_end(&sd->bl,SC_ALL_RIDING,INVALID_TIMER);
-		else
-			sc_start(&sd->bl,&sd->bl,SC_ALL_RIDING,100,0,-1);
-		script_pushint(sSCRIPT_CMD_SUCCESS;
+	if( (sd = sc&sd->sc ) {
+		if( sd->sc.option && (sd->sc.option&(OPTION_WUGRIDER|OPTION_RIDING|OPTION_DRAGON|OPTION_MADOGEAR)) ) {
+			clif_msgtable(sd->fd,NEED_REINS_OF_MOUNT);
+			script_pushint(st,0); //Can't mount with one of these
+		} else {
+			if( sd->sc.data[SC_ALL_RIDING] )
+				status_change_end(&sd->bl,SC_ALL_RIDING,INVALID_TIMER);
+			else
+				sc_start(&sd->bl,&sd->bl,SC_ALL_RIDING,100,0,-1);
+			script_pushint(st,1); //In both cases, return 1.
+		}pt_pushint(sSCRIPT_CMD_SUCCESS;
 }
 ; //In both cases, return 1.
 	}
