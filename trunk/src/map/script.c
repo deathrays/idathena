@@ -51,6 +51,10 @@
 #include "elemental.h"
 #include "../config/core.h"
 
+#ifdef PCRE_SUPPORT
+	#include "../../3rdparty/pcre/include/pcre.h" // preg_match
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11407,10 +11411,10 @@ BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
 	const char *str;
 	const char *mapname;
 	unsigned int index;
-	mapname=script_getstr(st,2);
-	str=script_getstr(st,3);
-	x=script_getnum(st,4);
-	y=script_getnum(st,5);pt_getnum(st,6);
+	mapname=scrip=script_getnum(st,4);
+	y=script_getnum(st,5);
+	if(script_hasdata(st,7)){
+		check_val=script_getnum(st,6);
 		check_ID=script_getnum(st,7);
 	}
 
@@ -15374,10 +15378,12 @@ BUILDIN_FUNC(unitstop)
 	if( bl != NULL ) bl = map_id2bl(unit_id);
 	if( bl != NULL )
 	{
-		unit_stop_attack(bl);
-		unit_stop_walking(bl,4);
+bl,4);
 		if( bl->type == BL_MOB )
-		SCRIPT_CMD_SUCCESS;
+			((TBL_MOB*)bl)->target_id = 0;
+	}
+
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Makes the unit say the message
@@ -17886,7 +17892,38 @@ BUILDIN_FUNC(vip_time) {
 #ifdef PCRE_SUPPORT
 BUILDIN_FUNC(defpattern);
 BUILDIN_FUNC(activatepset);
-BUILDIN_FUNC(deactivatepset);
+BUILDIN_FUNC
+/** Regular expression matching
+ * preg_match(<pattern>,<string>{,<offset>})
+ */
+BUILDIN_FUNC(preg_match) {
+	pcre *re;
+	pcre_extra *pcreExtra;
+	const char *error;
+	int erroffset, r, offset = 0;
+	int subStrVec[30];
+	const char* pattern = script_getstr(st,2);
+	const char* subject = script_getstr(st,3);
+
+	if (script_hasdata(st,4))
+		offset = script_getnum(st,4);
+
+	re = pcre_compile(pattern,0,&error,&erroffset,NULL);
+	pcreExtra = pcre_study(re,0,&error);
+
+	r = pcre_exec(re,pcreExtra,subject,(int)strlen(subject),offset,0,subStrVec,30);
+
+	pcre_free(re);
+	if (pcreExtra != NULL)
+		pcre_free(pcreExtra);
+
+	if (r < 0)
+		script_pushint(st,0);
+	else
+		script_pushint(st,(r > 0) ? r : 30 / 3);
+
+	return SCRIPT_CMD_SUCCESS;
+}C(deactivatepset);
 BUILDIN_FUNC(deletepset);
 #endif
 
