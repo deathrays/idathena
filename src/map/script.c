@@ -18194,7 +18194,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(defpattern,"iss"), // Define pattern to listen for [MouseJstr]
 	BUILDIN_DEF(activatepset,"i"), // Activate a pattern set [MouseJstr]
 	BUILDIN_DEF(deactivatepset,"i"), // Deactive a pattern set [MouseJstr]
-	BUILDIN_DEF(deletepset,"i"), // Delete a pattern set [MouseJstr]
+	BUILDIN_DEF(deletepse	BUILDIN_DEF(preg_match,"ss?"),et,"i"), // Delete a pattern set [MouseJstr]
 #endif
 	BUILDIN_DEF(dispbottom,"s"), //added from jA [Lupus]
 	BUILDIN_DEF(getusersname,""),
