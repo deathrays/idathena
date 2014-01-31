@@ -2984,6 +2984,7 @@ struct script_state* script_alloc_state(struct script_code* script, int pos, int
 	st->oid = oid;
 	st->sleep.timer = INVALID_TIMER;
 	st->npc_item_flag = battle_config.item_enabled_npc;
+	st->atcommand_enable_npc = battle_config.atcommand_enable_npc;
 	return st;
 }
 
@@ -3568,7 +3569,7 @@ static void script_attach_state(struct script_state* st)
 {
 	struct map_session_data* sd;
 
-	if(st->rid && (sd = map_id2sd(st->rid))!=NULL) {
+	if(st->rid && (sd = map_id2sd(st->rid)) != NULL) {
 		if(st!=sd->st) {
 			if(st->bk_st) { // There is already a backup
 				ShowDebug("script_free_state: Previous script state lost (rid=%d, oid=%d, state=%d, bk_npcid=%d).\n", st->bk_st->rid, st->bk_st->oid, st->bk_st->state, st->bk_npcid);
@@ -3579,6 +3580,7 @@ static void script_attach_state(struct script_state* st)
 		sd->st = st;
 		sd->npc_id = st->oid;
 		sd->npc_item_flag = st->npc_item_flag; // Load default.
+		sd->state.disable_atcommand_on_npc = (pc_get_group_level(sd) >= st->atcommand_enable_npc) ? false : true;
 #ifdef SECURE_NPCTIMEOUT
 		if( sd->npc_idle_timer == INVALID_TIMER )
 			sd->npc_idle_timer = add_timer(gettick() + (SECURE_NPCTIMEOUT_INTERVAL*1000),npc_rr_secure_timeout_timer,sd->bl.id,0);
@@ -7572,10 +7574,13 @@ BUILDIN_FUNC(statusup)
 
 	return SCRIPT_CMD_SUCCESS;
 }
+/*=============tskill(sd,2));
+	return 0;
+}
+
 /*==========================================
  *
- *------------------------------------------*/
-BUILDIN_FUNC(statusup2)
+ *--------------statusup2)
 {
 	int type,val;
 	TBL_PC *sd;
@@ -11403,15 +11408,14 @@ BUILDIN_FUNC(failedremovecards) {
  * type: 0=everyone, 1=guild, 2=party;	[Reddozen]
  * improved by [Lance]
  * ================================================================*/
-BUILDIN_FUNC(mapwarp)	// Added by RoVeRT
-{
-	int x,y,m,check_val=0,check_ID=0,i=0;
-	struct guild *g = NULL;
+BUILDIN_FUNC(mapwarp)	// Added by RoVe	struct guild *g = NULL;
 	struct party_data *p = NULL;
 	const char *str;
 	const char *mapname;
 	unsigned int index;
-	mapname=scrip=script_getnum(st,4);
+	mapname=script_getstr(st,2);
+	str=script_getstr(st,3);
+	x=script_getnum(st,4);
 	y=script_getnum(st,5);
 	if(script_hasdata(st,7)){
 		check_val=script_getnum(st,6);
@@ -15368,17 +15372,16 @@ BUILDIN_FUNC(unitattack)
 	return 0;
 }
 
-/// Makes the unit stop attacking and moving
-///
-/// unitstop <unit_id>;
-BUILDIN_FUNC(unitstop)
+/// Makes the unit stop attacking and mov(unitstop)
 {
 	int unit_id;
-	struct block	bl = map_id2bl(unit_id);
-	if( bl != NULL ) bl = map_id2bl(unit_id);
-	if( bl != NULL )
-	{
-bl,4);
+	struct block_list* bl;
+
+	unit_id = script_getnum(st,2);
+	bl = map_id2bl(unit_id);
+	if( bl != NULL ) {
+		unit_stop_attack(bl);
+		unit_stop_walking(bl,4);
 		if( bl->type == BL_MOB )
 			((TBL_MOB*)bl)->target_id = 0;
 	}
@@ -17881,6 +17884,27 @@ BUILDIN_FUNC(vip_time) {
 
 	chrif_req_login_operation(sd->status.account_id,sd->status.name,6,viptime,7,0);
 #endif
+	return SCRIPT_CMD_SUCCESS,100,/** Allows player to use atcommand while talking with NPC
+ * @author [Cydh], [Kichi]
+ */
+BUILDIN_FUNC(enable_command) {
+	TBL_PC* sd = script_rid2sd(st);
+
+	if (!sd)
+		return 1;
+	sd->state.disable_atcommand_on_npc = false;
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/** Prevents player to use atcommand while talking with NPC
+ * @author [Cydh], [Kichi]
+ */
+BUILDIN_FUNC(disable_command) {
+	TBL_PC* sd = script_rid2sd(st);
+
+	if (!sd)
+		return 1;
+	sd->state.disable_atcommand_on_npc = true;
 	return SCRIPT_CMD_SUCCESS,100,val1,val2,val3,val4,tick);
 	}
 	return 0;
@@ -17892,11 +17916,12 @@ BUILDIN_FUNC(vip_time) {
 #ifdef PCRE_SUPPORT
 BUILDIN_FUNC(defpattern);
 BUILDIN_FUNC(activatepset);
-BUILDIN_FUNC
+BUILDIN_FUNC#endifC
 /** Regular expression matching
  * preg_match(<pattern>,<string>{,<offset>})
  */
 BUILDIN_FUNC(preg_match) {
+#ifdef PCRE_SUPPORT
 	pcre *re;
 	pcre_extra *pcreExtra;
 	const char *error;
@@ -17923,7 +17948,12 @@ BUILDIN_FUNC(preg_match) {
 		script_pushint(st,(r > 0) ? r : 30 / 3);
 
 	return SCRIPT_CMD_SUCCESS;
-}C(deactivatepset);
+#else
+	ShowError("script:preg_match: cannot run without PCRE library enabled.\n");
+	script_pushint(st,0);
+	return SCRIPT_CMD_FAILURE;
+#endif
+}ivatepset);
 BUILDIN_FUNC(deletepset);
 #endif
 
@@ -18194,7 +18224,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(defpattern,"iss"), // Define pattern to listen for [MouseJstr]
 	BUILDIN_DEF(activatepset,"i"), // Activate a pattern set [MouseJstr]
 	BUILDIN_DEF(deactivatepset,"i"), // Deactive a pattern set [MouseJstr]
-	BUILDIN_DEF(deletepse	BUILDIN_DEF(preg_match,"ss?"),et,"i"), // Delete a pattern set [MouseJstr]
+	BUILDIN_DEF(deletepse#endif
+	BUILDIN_DEF(preg_match,"ss?"),, // Delete a pattern set [MouseJstr]
 #endif
 	BUILDIN_DEF(dispbottom,"s"), //added from jA [Lupus]
 	BUILDIN_DEF(getusersname,""),
@@ -18397,6 +18428,7 @@ isbegin_quest,"ipletequest,"i"),
 	BUILDIN_DEF2(montransform,"transform","vii????"),
 	BUILDIN_DEF(bonus_script,"si????"),
 	BUILDIN_DEF(vip_status,"i?"),
-	BUILDIN_DEF(vip_time,"i?"),m	BUILDIN_DEF(getgroupitem,"i"),m,"vii????"), //Monster Transform [malufett]
+	BUILDIN_DEF(vip_time,"i?"),m	BUILDIN_DEF(getgroupitem,"i"),m	BUILDIN_DEF(enable_command,""),
+	BUILDIN_DEF(disable_command,""),m,"vii????"), //Monster Transform [malufett]
 
 #include "../cu
