@@ -5872,14 +5872,14 @@ BUILDIN_FUNC(cutin)
  *------------------------------------------*/
 BUILDIN_FUNC(viewpoint)
 {
-	int type,x,y,id,color;
+	int type, x, y, id, color;
 	TBL_PC* sd;
 
-	type=script_getnum(st,2);
-	x=script_getnum(st,3);
-	y=script_getnum(st,4);
-	id=script_getnum(st,5);
-	color=script_getnum(st,6);
+	type = script_getnum(st,2);
+	x = script_getnum(st,3);
+	y = script_getnum(st,4);
+	id = script_getnum(st,5);
+	color = script_getnum(st,6);
 	
 	sd = script_rid2sd(st);
 	if( sd == NULL )
@@ -7574,7 +7574,7 @@ BUILDIN_FUNC(statusup)
 
 	return SCRIPT_CMD_SUCCESS;
 }
-/*=============tskill(sd,2));
+/oint + pc_resetskill(sd,2));
 	return 0;
 }
 
@@ -11408,7 +11408,8 @@ BUILDIN_FUNC(failedremovecards) {
  * type: 0=everyone, 1=guild, 2=party;	[Reddozen]
  * improved by [Lance]
  * ================================================================*/
-BUILDIN_FUNC(mapwarp)	// Added by RoVe	struct guild *g = NULL;
+BUILDIN_FUNC(mapwarp)	//eck_ID=0,i=0;
+	struct guild *g = NULL;
 	struct party_data *p = NULL;
 	const char *str;
 	const char *mapname;
@@ -15372,7 +15373,8 @@ BUILDIN_FUNC(unitattack)
 	return 0;
 }
 
-/// Makes the unit stop attacking and mov(unitstop)
+/// Makes the unit stop att;
+BUILDIN_FUNC(unitstop)
 {
 	int unit_id;
 	struct block_list* bl;
@@ -16641,7 +16643,8 @@ static int buildin_mobuseskill_sub(struct block_list *bl,va_list ap)
 	{
 		case 0: tbl = map_id2bl(md->bl.id); break;
 		case 1: tbl = map_id2bl(md->target_id); break;
-		case 2: tbl = map_id2bl(md->master_id); breDEFAULT_ENEMY_TYPE(md),skill_get_range2(&md->bl,skill_id,skill_lv)); break;
+		case 2: tbl =
+			 map_id2bl(md->master_id); breDEFAULT_ENEMY_TYPE(md),skill_get_range2(&md->bl,skill_id,skill_lv)); break;
 	}
 
 	if( !tbl )
