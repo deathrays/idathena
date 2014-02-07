@@ -11550,7 +11550,7 @@ BUILDIN_FUNC(ispartneron)
 
 BUILDIN_FUNC(getpartnerid)
 {
-	TBL_PC *sd=script_rid2sd(st);
+	TBL_PC *sd = script_rid2sd(st);
 	if (sd == NULL) {
 		script_pushint(st,0);
 		return 0;
@@ -11562,7 +11562,7 @@ BUILDIN_FUNC(getpartnerid)
 
 BUILDIN_FUNC(getchildid)
 {
-	TBL_PC *sd=script_rid2sd(st);
+	TBL_PC *sd = script_rid2sd(st);
 	if (sd == NULL) {
 		script_pushint(st,0);
 		return 0;
@@ -11574,7 +11574,7 @@ BUILDIN_FUNC(getchildid)
 
 BUILDIN_FUNC(getmotherid)
 {
-	TBL_PC *sd=script_rid2sd(st);
+	TBL_PC *sd = script_rid2sd(st);
 	if (sd == NULL) {
 		script_pushint(st,0);
 		return 0;
@@ -11586,7 +11586,7 @@ BUILDIN_FUNC(getmotherid)
 
 BUILDIN_FUNC(getfatherid)
 {
-	TBL_PC *sd=script_rid2sd(st);
+	TBL_PC *sd = script_rid2sd(st);
 	if (sd == NULL) {
 		script_pushint(st,0);
 		return 0;
@@ -15373,7 +15373,7 @@ BUILDIN_FUNC(unitattack)
 	return 0;
 }
 
-/// Makes the unit stop att;
+/// Makes the unit unit_id>;
 BUILDIN_FUNC(unitstop)
 {
 	int unit_id;
