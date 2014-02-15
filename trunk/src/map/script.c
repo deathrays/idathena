@@ -7542,14 +7542,15 @@ BUILDIN_FUNC(getequippercentrefinery)
  *------------------------------------------*/
 BUILDIN_FUNC(successrefitem)
 {
-	int i = -1,num,ep;
+	int i = -1, num, ep, up = 1;
 	TBL_PC *sd;
 
 	num = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
-
+	if(script_hasdata(st,3))
+		up = script_getnum(st,3);
 	if(num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
 	if(i >= 0) {
@@ -7561,7 +7562,8 @@ BUILDIN_FUNC(successrefitem)
 		if(sd->status.inventory[i].refine >= MAX_REFINE)
 			return 0;
 
-		sd->status.inventory[i].refine++;
+		sd->status.inventory[i].refine += up;
+		sd->status.inventory[i].refine = cap_value(sd->status.inventory[i].refine,0,MAX_REFINE);
 		pc_unequipitem(sd,i,2); //Status calc will happen in pc_equipitem() below
 
 		clif_refine(sd->fd,0,i,sd->status.inventory[i].refine);
@@ -7606,7 +7608,6 @@ BUILDIN_FUNC(failedrefitem)
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
-
 	if(num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
 	if(i >= 0) {
@@ -7628,16 +7629,15 @@ BUILDIN_FUNC(failedrefitem)
  *------------------------------------------*/
 BUILDIN_FUNC(downrefitem)
 {
-	int i = -1,num,ep,down = 1;
+	int i = -1, num, ep, down = 1;
 	TBL_PC *sd;
 
+	num = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
-	num = script_getnum(st,2);
 	if(script_hasdata(st,3))
 		down = script_getnum(st,3);
-
 	if(num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
 	if(i >= 0) {
@@ -11441,10 +11441,10 @@ BUILDIN_FUNC(successremovecards) {
 	if (itemdb_isspecial(sd->status.inventory[i].card[0]))
 		return 0;
 
-	for (c = sd->inventory_data[i]->slot - 1; c >= 0; --c) {
-		if (sd->status.inventory[i].card[c] && itemdb_type(sd->status.inventory[i].card[c]) == IT_CARD ) { // Extract this card from the item
+	for (c = sd->inventory_data[i]->slot - 1; c >= 0; --c) temdb_type(sd->status.inventory[i].card[c]) == IT_CARD ) { // Extract this card from the item
 			int flag;
-			strucf(item_tmp));
+			struct item item_tmp;
+			memset(&item_tmp,0,sizeof(item_tmp));
 			cardflag = 1;
 			item_tmp.nameid   = sd->status.inventory[i].card[c];
 			item_tmp.identify = 1;
@@ -14218,71 +14218,78 @@ BUILDIN_FUNC(implode)
 	// Get data
 	str = script_getstr(st, 2);
 	format = script_getstr(st, 3);
-	argc = script_lastdata(st)-3;
+	argc = script_lastdata(st) - 3;
 
 	len = strlen(format);
-	CREATE(buf, char, len*2+1);
+
+	if(len != 0 && strlen(str) == 0) {
+		// If the source string is empty but the format string is not, we return -1
+		// according to the C specs. (if the format string is also empty, we shall
+		// continue and return 0: 0 conversions took place out of the 0 attempted.)
+		script_pushint(st, -1);
+		return 0;
+	}
+
+	CREATE(buf, char, len * 2 + 1);
 
 	// Issue sscanf for each parameter
 	*buf = 0;
 	q = format;
-	while((p = strchr(q, '%'))){
-		if(p!=q){
-			strncat(buf, q, (size_t)(p-q));
+	while((p = strchr(q, '%'))) {
+		if(p != q) {
+			strncat(buf, q, (size_t)(p - q));
 			q = p;
 		}
-		p = q+1;
-		if(*p=='*' || *p=='%'){  // Skip
+		p = q + 1;
+		if(*p == '*' || *p == '%') { // Skip
 			strncat(buf, q, 2);
-			q+=2;
+			q += 2;
 			continue;
 		}
-		if(arg>=argc){
+		if(arg >= argc) {
 			ShowError("buildin_sscanf: Not enough arguments passed!\n");
 			script_pushint(st, -1);
-			if(buf) aFree(buf);
-			if(ref_str) aFree(ref_str);
+			if(buf)
+				aFree(buf);
+			if(ref_str)
+				aFree(ref_str);
 			return 1;
 		}
-		if((p = strchr(q+1, '%'))==NULL){
-			p = strchr(q, 0);  // EOS
-		}
-		len = p-q;
+		if((p = strchr(q + 1, '%')) == NULL)
+			p = strchr(q, 0); // EOS
+		len = p - q;
 		strncat(buf, q, len);
 		q = p;
-
 		// Validate output
-		data = script_getdata(st, arg+4);
-		if(!data_isreference(data) || !reference_tovariable(data)){
+		data = script_getdata(st, arg + 4);
+		if(!data_isreference(data) || !reference_tovariable(data)) {
 			ShowError("buildin_sscanf: Target argument is not a variable!\n");
 			script_pushint(st, -1);
-			if(buf) aFree(buf);
-			if(ref_str) aFree(ref_str);
+			if(buf)
+				aFree(buf);
+			if(ref_str)
+				aFree(ref_str);
 			return 1;
 		}
 		buf_p = reference_getname(data);
-		if(not_server_variable(*buf_p) && (sd = script_rid2sd(st))==NULL){
+		if(not_server_variable(*buf_p) && (sd = script_rid2sd(st)) == NULL) {
 			script_pushint(st, -1);
-			if(buf) aFree(buf);
-			if(ref_str) aFree(ref_str);
+			if(buf)
+				aFree(buf);
+			if(ref_str)
+				aFree(ref_str);
 			return 0;
 		}
-
 		// Save value if any
-		if(buf_p[strlen(buf_p)-1]=='$'){  // String
-			if(ref_str==NULL){
-				CREATE(ref_str, char, strlen(str)+1);
-			}
-			if(sscanf(str, buf, ref_str)==0){
+		if(buf_p[strlen(buf_p) - 1] == '$') { // String
+			if(ref_str == NULL)
+				CREATE(ref_str, char, strlen(str) + 1);
+			if(sscanf(str, buf, ref_str) == 0)
 				break;
-			}
-			           break;
-            }
-            set_reg(st, sd, reference_uid( reference_getid(data),(ref_str), reference_getref(data));
-		} else {  // Number
-			if(sscanf(str, buf, &ref_int)==0){
+			set_reg(st, sd, reference_uid(reference_getid(data), reference_getindex(data)), buf_p, (void *)(ref_str), reference_getref(data));
+		} else { // Number
+			if(sscanf(str, buf, &ref_int) == 0)
 				break;
-			}
 			           break;
             }
             set_reg(st, sd, reference_uid( reference_getid(data), reference_getindex(data) ), buf_p, (void *)__64		}
@@ -14290,16 +14297,16 @@ BUILDIN_FUNC(implode)
 
 		// Disable used format (%... -> %*...)
 		buf_p = strchr(buf, 0);
-		memmove(buf_p-len+2, buf_p-len+1, len);
-		*(buf_p-len+1) = '*';
+		memmove(buf_p - len + 2, buf_p - len + 1, len);
+		*(buf_p - len + 1) = '*';
 	}
 
-	if(!strcmp(str, "")) script_pushint(st, -1);
-	else script_pushint(st, arg);
-	if(buf) aFree(buf);
-	if(ref_str) aFree(ref_str);
-
-	return SCRIPT_CMD_SUCCESS] ) : 0;
+	script_pushint(st, arg);
+	if(buf)
+		aFree(buf);
+	if(ref_str)
+		aFree(ref_str);
+ len - inSCRIPT_CMD_SUCCESS] ) : 0;
 
 	script_pushint(st,val);
 	return 0;
@@ -14552,6 +14559,28 @@ BUILDIN_FUNC(atoi)
 {
 	const char *value;
 	value = script_getstr(st,2SCRIPT_CMD_SUCCESS;
+	scBUILDIN_FUNC(axtoi)
+{
+	const char *hex = script_getstr(st,2);
+	long value = strtol(hex, NULL, 16);
+
+#if LONG_MAX > INT_MAX || LONG_MIN < INT_MIN
+	value = cap_value(value, INT_MIN, INT_MAX);
+#endif
+	script_pushint(st, (int)value);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(strtol)
+{
+	const char *string = script_getstr(st, 2);
+	int base = script_getnum(st, 3);
+	long value = strtol(string, NULL, base);
+
+#if LONG_MAX > INT_MAX || LONG_MIN < INT_MIN
+	value = cap_value(value, INT_MIN, INT_MAX);
+#endif
+	script_pushint(st, (int)valuegetstr(st,2SCRIPT_CMD_SUCCESS;
 	scriC_pushint(st,atoi(value));
 	return 0;
 }
@@ -15267,46 +15296,6 @@ BUILDIN_FUNC(searchitem)
 	}
 
 	script_pushint(st,count);
-	return SCRIPT_CMD_SUCCESS;
-}
-
-int axtoi(const char *hexStg)
-{
-	int n = 0;        //Position in string
-	int16 m = 0;      //Position in digit[] to shift
-	int count;        //Loop index
-	int intValue = 0; //Integer value of hex string
-	int digit[11];    //Hold values to convert
-
-	while( n < 10 ) {
-		if( hexStg[n] == '\0' )
-			break;
-		if( hexStg[n] > 0x29 && hexStg[n] < 0x40 )      //If 0 to 9
-			digit[n] = hexStg[n]&0x0f;                  //Convert to int
-		else if( hexStg[n] >= 'a' && hexStg[n] <= 'f' ) //If a to f
-			digit[n] = (hexStg[n]&0x0f) + 9;            //Convert to int
-		else if( hexStg[n] >= 'A' && hexStg[n] <= 'F')  //If A to F
-			digit[n] = (hexStg[n]&0x0f) + 9;            //C	digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
-		else break;
-		n++ n < count ) {
-		//Digit[n] is value of hex digit at position n
-		//(m << 2) is the number of positions to shift
-		//2) is the number of positions to shift
-		// OR the bits into return value
-		intValue //Adjust the position to set
-		n++; //Next digit to process
-	}
-	return (intValue);
-}
-
-//git to process
-	}
-	return (intValue);
-}
-
-// [Lance] Hex string to integer converter
-BUILDIN_FUNC(axtoi
-	script_pushint(st,axtoi(hex));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -17186,12 +17175,12 @@ cript_pushint(st,-1);//unknown
 	return 0;
 }
 /**
- * freeloop(<toggle>) -> toggles this script instance's looping-check ability
- **/
-BUILDIN_FUNC(freeloop) {
-
-	if( script_getnum(st,2) )
-		st->freeloop = 1;
+ * freeloop(<toggle>) -> toggles this script instance's looping-	if( script_hasdata(st,2) ) {
+		if( script_getnum(st,2) )
+			st->freeloop = 1;
+		else
+			st->freeloop = 0;
+	}st->freeloop = 1;
 	ese
 		st->freelo	return SCRIPT_CMD_SUCCESSscript_pushint(st, st->freeloop);
 
@@ -17210,10 +17199,10 @@ BUILDIN_FUNC(bindatcmd) {
 	atcmd = script_getstr(st,2);
 	eventName = script_getstr(st,3);
 
-	if( *atcmd == atcommand_symbol || *atcmd == charcommand_symbol )
-		atcmd++;
-	
-	if( script_hasdata(st,4) ) level = script_getnum(st,4);
+	if( *atcmd == atcommand_symbol || *atcmd == charcommand_symbo
+		level = script_getnum(st,4);
+	if( script_hasdata(st,5) )
+		t_getnum(st,4);
 	if( script_hasdata(st,5) ) level2 = script_getnum(st,5);
 
 	if( atcmd_binding_count == 0 ) {
@@ -18066,6 +18055,37 @@ BUILDIN_FUNC(disable_command) {
 	if (!sd)
 		return 1;
 	sd->state.disable_atcommand_on_npc = true;
+	return SCRIPT_CMD_SUCCESS,100,/** Get the information of the members of a guild by type.
+ * getguildmember  <guild_id>{,<type>};
+ * @param guild_id: ID of guild
+ * @param type: Type of option (optional)
+ */
+BUILDIN_FUNC(getguildmember)
+{
+	int i, j = 0, type = 0;
+	struct guild *g = guild_search(script_getnum(st,2));
+
+	if (script_hasdata(st,3))
+		type = script_getnum(st,3);
+	if (g) {
+		for (i = 0; i < MAX_GUILD; i++) {
+			if (g->member[i].account_id) {
+				switch (type) {
+					case 2:
+						mapreg_setreg(reference_uid(add_str("$@guildmemberaid"),j),g->member[i].account_id);
+						break;
+					case 1:
+						mapreg_setreg(reference_uid(add_str("$@guildmembercid"),j),g->member[i].char_id);
+						break;
+					default:
+						mapreg_setregstr(reference_uid(add_str("$@guildmembername$"),j),g->member[i].name);
+						break;
+				}
+				j++;
+			}
+		}
+	}
+	mapreg_setreg(add_str("$@guildmembercount"), j);
 	return SCRIPT_CMD_SUCCESS,100,val1,val2,val3,val4,tick);
 	}
 	return 0;
@@ -18193,7 +18213,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(getequipisenableref,"i"),
 	BUILDIN_DEF(getequiprefinerycnt,"i"),
 	BUILDIN_DEF(getequipweaponlv,"i"),
-	BUILDIN_DEF(getequippercentrefinery,"i"),
+	BUILDIN_DEF(getequippercentr?efinery,"i"),
 	BUILDIN_DEF(successrefitem,"i"),
 	BUILDIN_DEF(failedrefitem,"i"),
 	BUILDIN_DEF(downrefitem,"i?"),
@@ -18449,7 +18469,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(axtoi,"s"),
 	BUILDIN_DEF(query_sql,"s*"),
 	BUILDIN_DEF(query_logsql,"s*"),
-	BUILDIN_DEF(escape_sql,"v"),
+	BUILDIN_DEBUILDIN_DEF(strtol,"siIN_DEF(escape_sql,"v"),
 	BUILDIN_DEF(atoi,"s"),
 	// [zBuffer] List of player cont commands --->
 	BUILDIN_DEF(rid2name,"i"),
@@ -18547,7 +18567,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(getargcount,""),
 	BUILDIN_DEF(getcharip,"?"),
 	BUILDIN_DEF(is_function,"s"),
-	BUILDIN_DEF(get_revision,""),
+	BUILDIN_D?F(get_revision,""),
 	BUILDIN_DEF(free?loop,"i"),
 	BUILDIN_DEF(getrandgroupitem,"ii"),
 	BUILDIN_DEF(cleanmap,"s"),
@@ -18591,6 +18611,6 @@ isbegin_quest,"ipletequest,"i"),
 	BUILDIN_DEF(bonus_script,"si????"),
 	BUILDIN_DEF(vip_status,"i?"),
 	BUILDIN_DEF(vip_time,"i?"),m	BUILDIN_DEF(getgroupitem,"i"),m	BUILDIN_DEF(enable_command,""),
-	BUILDIN_DEF(disable_command,""),m,"vii????"), //Monster Transform [malufett]
+	BUILDIN_DEF(disable_command,""),m	BUILDIN_DEF(getguildmember,"i?"),m,"vii????"), //Monster Transform [malufett]
 
 #include "../cu
