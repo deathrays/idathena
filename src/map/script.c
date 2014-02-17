@@ -255,6 +255,7 @@ struct Script_Config script_config = {
 	"OnPCLoadMapEvent", //loadmap_event_name
 	"OnPCBaseLvUpEvent", //baselvup_event_name
 	"OnPCJobLvUpEvent", //joblvup_event_name
+	"OnPCStatCalcEvent", //stat_calc_event_name
 	"OnTouch_",	//ontouch_name (runs on first visible char to enter area, picks another char if the first char leaves)
 	"OnTouch",	//ontouch2_name (run whenever a char walks into the OnTouch area)
 };
@@ -11441,7 +11442,8 @@ BUILDIN_FUNC(successremovecards) {
 	if (itemdb_isspecial(sd->status.inventory[i].card[0]))
 		return 0;
 
-	for (c = sd->inventory_data[i]->slot - 1; c >= 0; --c) temdb_type(sd->status.inventory[i].card[c]) == IT_CARD ) { // Extract this card from the item
+	for (c = s {
+		if (sd->status.inventory[i].card[c] && itemdb_type(sd->status.inventory[i].card[c]) == IT_CARD ) { // Extract this card from the item
 			int flag;
 			struct item item_tmp;
 			memset(&item_tmp,0,sizeof(item_tmp));
