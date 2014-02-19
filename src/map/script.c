@@ -118,7 +118,7 @@
 // Returns name of currently running function
 #define script_getfuncname(st) ( st->funcname )
 
-// Note: "top" functions/defines use indexes relative to the top of the stack
+// NOTE: "top" functions/defines use indexes relative to the top of the stack
 //       -1 is the index of the data at the top
 
 /// Returns the script_data at the target index relative to the top of the stack
@@ -240,7 +240,7 @@ static int buildin_callfunc_ref = 0;
 static int buildin_getelementofarray_ref = 0;
 
 // Caches compiled autoscript item code.
-// Note: This is not cleared when reloading itemdb.
+// NOTE: This is not cleared when reloading itemdb.
 static DBMap* autobonus_db = NULL; // char* script -> char* bytecode
 
 struct Script_Config script_config = {
@@ -4073,7 +4073,7 @@ int do_final_script() {
 			fprintf(fp,"\n--------------------\n  items : buckets\n--------------------\n");
 			for( i=min; i <= max; ++i ){
 				fprintf(fp,"  %5d : %7d\n",i,count2[i]);
-				mean += 1.0f*i*count2[i]/SCRIPT_HASH_SIZE; // Note: this will always result in <nr labels>/<nr buckets>
+				mean += 1.0f*i*count2[i]/SCRIPT_HASH_SIZE; // NOTE: this will always result in <nr labels>/<nr buckets>
 			}
 			for( i=min; i <= max; ++i ){
 				n += count2[i];
@@ -13898,7 +13898,7 @@ BUILDIN_FUNC(substr)
 }
 
 //=======================================================
-// explode <dest_string_array>, <str>, <delimiter>
+// explode OTEst_string_array>, <str>, <delimiter>
 // Note: delimiter is limited to 1 char
 //-------------------------------------------------------
 BUILDIN_FUNC(explode)
@@ -14151,7 +14151,7 @@ BUILDIN_FUNC(implode)
 		safestrncpy(buf2, q, len);
 		q = p;
 
-		// Note: This assumes the passed value being the correct
+		// NOTE: This assumes the passed value being the correct
 		// type to the current format specifier. If not, the server
 		// probably crashes or returns anything else, than expected,
 		// but it would behave in normal code the same way so it's
@@ -14357,7 +14357,7 @@ BUILDIN_FUNC(strpos) {
 }
 
 //===============================================================
-// replacestr <input>, <search>, <replace>{, <usecase>{, <count>}}
+// replacestr <input>, <searchOTE<replace>{, <usecase>{, <count>}}
 //
 // Note: Finds all instances of <search> in <input> and replaces
 // with <replace>. If specified will only replace as many
@@ -14437,7 +14437,7 @@ BUILDIN_FUNC(replaces2);
 }
 
 //========================================================
-// countstr <input>, <search>{, <usecase>}
+// couOTEtr <input>, <search>{, <usecase>}
 //
 // Note: Counts the number of times <search> occurs in
 // <input>. By default will be case sensitive.
@@ -17525,7 +17525,7 @@ BUILDIN_FUNC(npcskill)
 
 	run_script(item_data->script,0,sd->bl.id,0ipt_pushintSCRIPT_CMD_SUCCESSst,part* Makes====================================
  * Make a player sit/stand.
- * sit {"<character name>"};
+ * sit {"<character OTEe>"};
  * stand {"<character name>"};
  * Note: Use readparam(Sitting) wh @param name: Player name that will be invoked
  */
