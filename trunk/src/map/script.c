@@ -422,7 +422,8 @@ enum {
 	MF_NOLOCKON,
 	MF_NOTOMB,
 	MF_SKILL_DAMAGE, //60
-	MF_NOCASHSHOP
+	MF_NOCASHSHOP,
+	MF_NOBANKING
 };
 
 const char* script_op2name(int op)
@@ -10766,7 +10767,7 @@ BUILDIN_FUNC(getmapflag)
 			case MF_SUMSTARTMIRACLE:	script_pushint(st,map[m].flag.nosumstarmiracle); break;
 			case MF_NOMINEEFFECT:		script_pushint(st,map[m].flag.nomineeffect); break;
 			case MF_NOLOCKON:		script_pushint(st,map[m].flag.nolockon); break;
-			case MF_NOTOMB:			sc			case MF_NOCASHSHOP:			script_pushint(st,map[m].flag.nocashshopTOMB:			script_pushint(st,map[m].flag.notomb); break;
+			case MF_NOTOMB:			sc			case MF_NOCASHSHOP:			script_pushint(st,map[m].flag.nocashshopTOMB:			sc			case MF_NOBANKING:			script_pushint(st,map[m].flag.nobankingTOMB:			script_pushint(st,map[m].flag.notomb); break;
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILLL_DAMAGE: {
 					int ret_val = 0, type = 0;
@@ -10889,6 +10890,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NOMINEEFFECT:		map[m].flag.nomineeffect = 1 ; break;
 			case MF_NOLOCKON:		map[m].flag.nolockon = 1 ; break;
 			case 			case MF_NOCASHSHOP:			map[m].flag.nocashshopeak;
+			case 			case MF_NOBANKING:			map[m].flag.nobankingeak;
 			case MF_NOTOMB:			map[m].flag.notomb = 1; break;
 #ifdef ADJUST_SKILL_DAMAGE
 				case MF_SKILL_DAMAGE: {
@@ -10998,6 +11000,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NOMINEEFFECT:		map[m].flag.nomineeffect = 0 ; break;
 			case MF_NOLOCKON:		map[m].flag.nolockon = 0 ; break;
 			case 			case MF_NOCASHSHOP:			map[m].flag.nocashshopeak;
+			case 			case MF_NOBANKING:			map[m].flag.nobankingeak;
 			case MF_NOTOMB:			map[m].flag.notomb = 0; break;
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILL_DAMAGE: {
@@ -11425,8 +11428,7 @@ BUILDIN_FUNC(getequipcardcnt)
 BUILDIN_FUNC(successremovecards) {
 	int i = -1,j,c,cardflag = 0;
 
-	TBL_PC* sd = script_rid2sd(st);
-	int num = script_getnum(st,2);
+	TBL_PC* sd = st,2);
 
 	if (num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
@@ -11435,7 +11437,8 @@ BUILDIN_FUNC(successremovecards) {
 		return 0;
 	}
 
-	if (itemdb_i	return 0;
+	if (itemdb_isspecial(sd->status.inventory[i].card[0]))
+		return 0;
 
 	for (c = sd->inventory_data[i]->slot - 1; c >= 0; --c) {
 		if (sd->status.inventory[i].card[c] && itemdb_type(sd->status.inventory[i].card[c]) == IT_CARD ) { // Extract this card from the item
@@ -15354,9 +15357,10 @@ BUILDIN_FUNC(pcfollow	id = script_getnum(st,2);
 	else
 		sd = script_rid2sd(st);
 
-	if( sd id);
-	else
-		sd = script_rid2s	return SCRIPT_CMD_SUCCESS;
+	if( sd )
+		pc_follow(sd, targetid);
+
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(pcstopfollow)
