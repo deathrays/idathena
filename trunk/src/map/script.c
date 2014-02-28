@@ -7725,20 +7725,21 @@ BUILDIN_FUNC(statusup)
 	if( sd == NULL )
 		return 0;
 
-	pc_statusup(sd,type);
+	pc_statusup(sd,type,1);
+		return SCRIPT_CMD_SUCCESSpeproperty2(&bl, ALL_SAMEMAP);
+	}
 
-	return SCRIPT_CMD_SUCCESS;
+	return 0;
 }
 /*==========================================
- *=========================================
  *
  *---------------tatusup2)
 {
-	int type,val;
+	int type, val;
 	TBL_PC *sd;
 
-	type=script_getnum(st,2);
-	val=script_getnum(st,3);
+	type = script_getnum(st,2);
+	val = script_getnum(st,3);
 	sd = script_rid2sd(st);
 	if( sd == NULL )
 		return 0;
@@ -11428,7 +11429,7 @@ BUILDIN_FUNC(getequipcardcnt)
 BUILDIN_FUNC(successremovecards) {
 	int i = -1,j,c,cardflag = 0;
 
-	TBL_PC* sd = st,2);
+	TBL_PC*etnum(st,2);
 
 	if (num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
