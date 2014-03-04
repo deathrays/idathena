@@ -2163,9 +2163,9 @@ bool script_get_constant(const char* name, int* value)
 {
 	int n = search_str(name);
 
-	if( n == -1 || str_data[n].type != C_INT ) { //Not found or not a constant
+	if( n == -1 || str_data[n].type != C_INT ) //Not found or not a constant
 		return false;
-	}
+
 	value[0] = str_data[n].val;
 
 	return true;
@@ -2177,13 +2177,12 @@ void script_set_constant(const char* name, int value, bool isparameter)
 	int n = add_str(name);
 
 	if( str_data[n].type == C_NOP ) { //New
-		str_data[n].type = isparameter ? C_PARAM : C_INT;
+		str_data[n].type = (isparameter ? C_PARAM : C_INT);
 		str_data[n].val  = value;
-	} else if( str_data[n].type == C_PARAM || str_data[n].type == C_INT ) { //Existing parameter or constant
-		ShowError("script_set_constant: Attempted to overwrite existing %s '%s' (old value=%d, new value=%d).\n", ( str_data[n].type == C_PARAM ) ? "parameter" : "constant", name, str_data[n].val, value);
-	} else { //Existing name
-		ShowError("script_set_constant: Invalid name for %s '%s' (already defined as %s).\n", isparameter ? "parameter" : "constant", name, script_op2name(str_data[n].type));
-	}
+	} else if( str_data[n].type == C_PARAM || str_data[n].type == C_INT ) //Existing parameter or constant
+		ShowError("script_set_constant: Attempted to overwrite existing %s '%s' (old value=%d, new value=%d).\n", (str_data[n].type == C_PARAM) ? "parameter" : "constant", name, str_data[n].val, value);
+	else //Existing name
+		ShowError("script_set_constant: Invalid name for %s '%s' (already defined as %s).\n", (isparameter ? "parameter" : "constant"), name, script_op2name(str_data[n].type));
 }
 
 /*==========================================
@@ -2208,10 +2207,62 @@ static void read_constdb(void)
 		type = 0;
 		if(sscanf(line,"%[A-Za-z0-9_],%[-0-9xXA-Fa-f],%d",name,val,&type) >= 2 ||
 		   sscanf(line,"%[A-Za-z0-9_] %[-0-9xXA-Fa-f] %d",name,val,&type) >= 2) {
-			script_set_constant(name,(int)strtol(val, NULL, 0),(bool)type);
+			script_set_constant(name, (int)strtol(val, NULL, 0), (bool)type);
 		}
 	}
 	fclose(fp);
+}
+
+/**
+ * Sets source-end constants for NPC scripts to access.
+ **/
+void script_hardcoded_constants(void)
+{
+	/* Server defines */
+	script_set_constant("PACKETVER", PACKETVER, false);
+	script_set_constant("MAX_LEVEL", MAX_LEVEL, false);
+	script_set_constant("MAX_STORAGE", MAX_STORAGE, false);
+	script_set_constant("MAX_INVENTORY", MAX_INVENTORY, false);
+	script_set_constant("MAX_CART", MAX_INVENTORY, false);
+	script_set_constant("MAX_ZENY", MAX_ZENY, false);
+	script_set_constant("MAX_PARTY", MAX_PARTY, false);
+	script_set_constant("MAX_GUILD", MAX_GUILD, false);
+	script_set_constant("MAX_GUILDLEVEL", MAX_GUILDLEVEL, false);
+	script_set_constant("MAX_GUILD_STORAGE", MAX_GUILD_STORAGE, false);
+	script_set_constant("MAX_BG_MEMBERS", MAX_BG_MEMBERS, false);
+	script_set_constant("MAX_CHAT_USERS", MAX_CHAT_USERS, false);
+	script_set_constant("VIP_SCRIPT", VIP_SCRIPT, false);
+	script_set_constant("MIN_STORAGE", MIN_STORAGE, false);
+
+	/* Status options */
+	script_set_constant("Option_Nothing", OPTION_NOTHING, false);
+	script_set_constant("Option_Sight", OPTION_SIGHT, false);
+	script_set_constant("Option_Hide", OPTION_HIDE, false);
+	script_set_constant("Option_Cloak", OPTION_CLOAK, false);
+	script_set_constant("Option_Falcon", OPTION_FALCON, false);
+	script_set_constant("Option_Riding", OPTION_RIDING, false);
+	script_set_constant("Option_Invisible", OPTION_INVISIBLE, false);
+	script_set_constant("Option_Orcish", OPTION_ORCISH, false);
+	script_set_constant("Option_Wedding", OPTION_WEDDING, false);
+	script_set_constant("Option_Chasewalk", OPTION_CHASEWALK, false);
+	script_set_constant("Option_Flying", OPTION_FLYING, false);
+	script_set_constant("Option_Xmas", OPTION_XMAS, false);
+	script_set_constant("Option_Transform", OPTION_TRANSFORM, false);
+	script_set_constant("Option_Summer", OPTION_SUMMER, false);
+	script_set_constant("Option_Dragon1", OPTION_DRAGON1, false);
+	script_set_constant("Option_Wug", OPTION_WUG, false);
+	script_set_constant("Option_Wugrider", OPTION_WUGRIDER, false);
+	script_set_constant("Option_Madogear", OPTION_MADOGEAR, false);
+	script_set_constant("Option_Dragon2", OPTION_DRAGON2, false);
+	script_set_constant("Option_Dragon3", OPTION_DRAGON3, false);
+	script_set_constant("Option_Dragon4", OPTION_DRAGON4, false);
+	script_set_constant("Option_Dragon5", OPTION_DRAGON5, false);
+	script_set_constant("Option_Hanbok", OPTION_HANBOK, false);
+	script_set_constant("Option_Oktoberfest", OPTION_OKTOBERFEST, false);
+
+	/* Status option compounds */
+	script_set_constant("Option_Dragon", OPTION_DRAGON, false);
+	script_set_constant("Option_Costume", OPTION_COSTUME, false);
 }
 
 /*==========================================
@@ -2312,6 +2363,7 @@ struct script_code* parse_script(const char *src,const char *file,int line,int o
 	if( first ) {
 		add_buildin_func();
 		read_constdb();
+		script_hardcoded_constants();
 		first = 0;
 	}
 
@@ -11330,8 +11382,7 @@ BUILDIN_FUNC(getcastledata)
 			script_pushint(st,gc->defense); break;
 		case 4:
 			script_pushint(st,gc->triggerE); break;
-		case 5:
-			script_pushint(st,gc->triggerD); break;
+		break;
 		case 6:
 			script_pushint(st,gc->nextTime); break;
 		case 7:
@@ -11346,10 +11397,10 @@ BUILDIN_FUNC(getcastledata)
 				break;
 			}
 			script_pushint(st,0);
-			ShowWarning("buildin_setcastledata: index = '%d' is out of alloweSCRIPT_CMD_SUCCESS range\n", index);
+			ShowWarning("buildin_setcastledata: index = '%d' is out of allowed range\n", index);
 			return 1;
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(setcastledata)
@@ -11369,8 +11420,8 @@ BUILDIN_FUNC(setcastledata)
 		return 1;
 	}
 
-	guild_castledatSCRIPT_CMD_SUCCESSsave(gc->castle_id, index, value);
-	return 0;
+	guild_castledatasave(gc->castle_id, index, value);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /* =====================================================================
@@ -11386,8 +11437,8 @@ BUILDIN_FUNC(requestguildinfo)
 	}
 
 	if (guild_id > 0)
-		guilSCRIPT_CMD_SUCCESS_npc_request_info(guild_id,event);
-	return 0;
+		guild_npc_request_info(guild_id,event);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Returns the number of cards that have been compounded onto the specified equipped item.
@@ -11416,11 +11467,10 @@ BUILDIN_FUNC(getequipcardcnt)
 	count = 0;
 	for (j = 0; j < sd->inventory_data[i]->slot; j++)
 		if (sd->status.inventory[i].card[j] && itemdb_type(sd->status.inventory[i].card[j]) == IT_CARD)
-			cSCRIPT_CMD_SUCCESS
+			count++;
 
-		clif_misceffect(&sd->bl,3);
-	}
-	return 0;
+	script_pushint(st,count);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Removes all cards from the item found in the specified equipment slot of the invoking character,
@@ -11429,7 +11479,8 @@ BUILDIN_FUNC(getequipcardcnt)
 BUILDIN_FUNC(successremovecards) {
 	int i = -1,j,c,cardflag = 0;
 
-	TBL_PC*etnum(st,2);
+	TBL_PC* sd = script_rid2sd(st);
+	int num = script_getnum(st,2);
 
 	if (num > 0 && num <= ARRAYLENGTH(equip))
 		i = pc_checkequip(sd,equip[num - 1]);
@@ -15233,11 +15284,11 @@ BUILDI( script_hasdata(st,2) )
 	return 0;
 }
 
-BUILDIN_FUNC(searchitem)
-{
-	sruct script_data* data = script_getdata(st, 2);
+BUILDIN_FUNscript_getdata(st,2);
 	const char *itemname = script_getstr(st,3);
-	struc	char* name;
+	struct item_data *items[MAX_SEARCH];
+	int count;
+	char* name;
 	int32 start;
 	int32 id;
 	int32 i;
@@ -15255,24 +15306,21 @@ BUILDIN_FUNC(searchitem)
 		return 0;
 	}
 
-	if( !data_isreference(data) ) turn 0;
-	}
-
-	if( !data_isreference(data) )
-	{
+	if( !data_isreference(data) ) {
 		ShowError("script:searchitem: not a variable\n");
-		script_repo //Nta(data);
+		script_reportdata(data);
 		st->state = END;
-		return 1;// not a variable
+		return 1; //Not a variable
 	}
 
 	id = reference_getid(data);
 	start = reference_getindex(data);
-	name = reference_get me(data);
-	if( not_array_variable(*name) )
-	{
+	name = reference_getname(data);
+	if( not_array_variable(*name) ) {
 		ShowError("script:searchitem: illegal scope\n");
-		script_repo //Not supported
+		script_reportdata(data);
+		st->state = END;
+		return 1; //Not supported
 	}
 
 	if( not_server_variable(*name) ) {
@@ -15281,13 +15329,11 @@ BUILDIN_FUNC(searchitem)
 			return 0; //No player attached
 	}
 
-	if( is_string_variable(name) ) { //Sd
-	}
-
-	if( is_string_variable(name) )
-	{// string array
+	if( is_string_variable(name) ) { //String array
 		ShowError("script:searchitem: not an integer array reference\n");
-		script_repo //Not supported
+		script_reportdata(data);
+		st->state = END;
+		return 1; //Not supported
 	}
 
 	for( i = 0; i < count; ++start, ++i ) { // Set array
@@ -15300,18 +15346,14 @@ BUILDIN_FUNC(searchitem)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-//pt_pushint(st,axtoi(hex));
-	return 0;
-}
-
-// [zBuffer] List of player cont commands --->
+//[zBuffer] List of player cont commands --->
 BUILDIN_FUNC(rid2name)
 {
-	struct block_list 
+	struct block_list *bl = NULL;
+	int rid = script_getnum(st,2);
+
 	if( (bl = map_id2bl(rid)) ) {
-		switch( bl->type ((bl = map_id2bl(rid)))
-	{
-		switch(bl->type) {
+		switch( bl->type ) {
 			case BL_MOB: script_pushstrcopy(st,((TBL_MOB*)bl)->name); break;
 			case BL_PC:  script_pushstrcopy(st,((TBL_PC*)bl)->status.name); break;
 			case BL_NPC: script_pushstrcopy(st,((TBL_NPC*)bl)->exname); break;
@@ -15325,9 +15367,9 @@ BUILDIN_FUNC(rid2name)
 		}
 	} else {
 		ShowError("buildin_rid2name: invalid RID\n");
-		sSCRIPT_CMD_SUCCESSript_pushconststr(st,"(null)");
+		script_pushconststr(st,"(null)");
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(pcblockmove)
@@ -15335,22 +15377,26 @@ BUILDIN_FUNC(pcblockmove)
 	int id, flag;
 	TBL_PC *sd = NULL;
 
-	id = script_getn id )
+	id = script_getnum(st,2);
+	flag = script_getnum(st,3);
+
+	if( id )
 		sd = map_id2sd(id);
 	else
 		sd = script_rid2sd(st);
 
-	if( sd id);
-	else
-		sd = script_rid2sd(st);
+	if( sd )
+		sd->state.blockedmove = flag > 0;
 
-	if(sd)
-	SCRIPT_CMD_SUCCESSsd->state.blockedmove = flag > 0;
-
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(pcfollow	id = script_getnum(st,2);
+BUILDIN_FUNC(pcfollow)
+{
+	int id, targetid;
+	TBL_PC *sd = NULL;
+
+	id = script_getnum(st,2);
 	targetid = script_getnum(st,3);
 
 	if( id )
@@ -16549,12 +16595,12 @@ SCRIPT_CMD_SUCCESS}
  *	2: Party doesn't have instance
  *	3: Other errors (instance not in DB, instance doesn't match with party, etc.)
  *------------------------------------------*/
-BUILDIN_FUNC(instance_enter)
-{
-	struct map_session_data *sd;
-
-	if((sd = script_rid2sd(st)) != NULL)
-		script_pushint(st,instance_enter(sd,scriptSCRIPT_CMD_SUCCESSgetstr(st, 2)));
+BUILDIN_FUNC(instance_ (sd = script_rid2sd(st)) != NULL ) {
+		if( script_hasdata(st,3) && script_hasdata(st,4) )
+			script_pushint(st,instance_enter_position(sd,script_getstr(st,2),script_getnum(st,3),script_getnum(st,4)));
+		else
+			script_pushint(st,instance_enter(sd,script_getstr(st,2)));
+	} ,instance_enter(sd,scriptSCRIPT_CMD_SUCCESSgetstr(st, 2)));
 	else
 		return 1;
 	return 0;
@@ -17797,27 +17843,7 @@ BUILDIN_FUNC(is_clientver) {
 		case 1:
 			ret = (sd->packet_ver >= date2version(data)) ? 1 : 0;
 		SCRIPT_CMD_SUCCESSbreak;
-* Retrieves server definitions
- * @param type: See in const.txt
-  *------------------------------------------*/
-BUILDIN_FUNC(getse
-	switch( type nt type = script_getnum(st,2);
-	switch (type) {
-		case 0: script_pushint(st,PACKETVER); break;
-		case 1: script_pushint(st,MAX_LEVEL); break;
-		case 2: script_pushint(st,MAX_STORAGE); break;
-		case 3: script_pushint(st,MAX_INVENTORY); break;
-		case 4: script_pushint(st,MAX_ZENY); break;
-		case 5: script_pushint(st,MAX_PARTY); break;
-		case 6: script_pushint(st,MAX_GUILD); break;
-		case 7: script_pushint(st,MAX_GUILDLEVEL); break;
-		case 8: script_pushint(st,MAX_GUILD_STORAGE); break;
-		case 9: case 10: script_pushint(st,VIP_SCRIPT); break;
-		case 11: script_pushint(st,MIN_STORAGE;
-		case 9: script_pushint(st,MAX_BG_MEMBERS); break;
-		default:
-			ShowWarning("buildin_getserverdef: unknown type %d.\n",type);
-		SCRIPT_CMD_SUCCESSscript_* Turns a player into a monster and grants SC attribute effect. [malufett]
+* Turns a player into a monster and grants SC attribute effect. [malufett]
  * montransform <monster name/ID>, <duration>, <sc type>, <val1>, <val2>, <val3>, <val4>;
  * @param monster: Monster ID or name
  * @param duration: Transform duration in millisecond (ms)
@@ -18615,7 +18641,7 @@ struct script_function buildin_func[] = {
 	//Instancing
 	BUILDIN_DEF(instance_create,"s"),
 	BUILDIN_DEF(instance_destroy,"?"),
-	BUILDIN_DEF(instance_id,""),
+	BUILDIN_DEF(ins??tance_id,""),
 	BUILDIN_DEF(instance_enter,"s"),
 	BUILDIN_DEF(instance_npcname,"s?"),
 	BUILDIN_DEF(instance_mapname,"s?"),
@@ -18674,7 +18700,6 @@ isbegin_quest,"ipletequest,"i"),
 	//Bound items [Xantara] & [Akinari]
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
 	BUILDIN_DEF2(getitem2,"getitembound2","v	BUILDIN_DEF(is_clientver,"ii?"),
-	BUILDIN_DEF(getserverdef,"i"),
 	//Monster Transform [malufett]
 	BUILDIN_DEF2(montransform,"transform","vii????"),
 	BUILDIN_DEF(bonus_script,"si????"),
