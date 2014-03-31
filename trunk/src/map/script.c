@@ -12626,7 +12626,13 @@ BUILDIN_FUNstruct script_data *data;
 	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	skill_lv = script_getnum(st,3);
 	sd = ;
-	uint16 skill_lv=script_getnum(st,3);
+	uint16 skill_lv=sc/* Ensure we're standing because the following packet causes the client to virtually set the char to stand,
+	 * which leaves the server thinking it still is sitting. */
+	if( pc_issit(sd) ) {
+		pc_setstand(sd);
+		skill_sit(sd,0);
+		clif_standing(&sd->bl);
+	}=script_getnum(st,3);
 	sd=script_rid2sd(st);
 
 	clif_skill_nod	return SCRIPT_CMD_SUCCESS>bl,&sd->bl,skill_id,skill_lv,1);
@@ -15274,14 +15280,13 @@ BUILDI( script_hasdata(st,2) )
 	if( sd )
 		script_pushint(st,DIFF_TICK(last_tick,sd->idletime));
 	else
-		script_pushint(st, sd-	return SCRIPT_CMD_SUCCESS);
-	else
-		script_pushint(st, 0);
-
-	return 0;
+		script_pushint(st,0);
+	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNscript_getdata(st,2);
+BUILDIN_FUNC(searchitem)
+{
+	struct script_data* data = script_getdata(st,2);
 	const char *itemname = script_getstr(st,3);
 	struct item_data *items[MAX_SEARCH];
 	int count;
