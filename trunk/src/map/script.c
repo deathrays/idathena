@@ -5944,26 +5944,59 @@ BUILDIN_FUNC(viewpoint)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-/*==========================================
- * countitem(nameID)
- *	returns number of items in inventory
- *==========================================
- * countitem2(nameID,Identified,Refine,Attribute,Card0,Card1,Card2,Card3)	[Lupus]
- *	returns number of items that meet the conditions
- *------------------------------------------*/
+/// Returns number of items in inventory/cart/storage
+/// countitem <nameID>{,<accountID>});
+/// countitem2 <nameID>,<Identified>,<Refine>,<Attribute>,<Card0>,<Card1>,<Card2>,<Card3>{,<accountID>}) [Lupus]
+/// cartcountitem <nameID>{,<accountID>});
+/// cartcountitem2 <nameID>,<Identified>,<Refine>,<Attribute>,<Card0>,<Card1>,<Card2>,<Card3>{,<accountID>})
+/// storagecountitem <nameID>{,<accountID>});
+/// storagecountitem2 <nameID>,<Identified>,<Refine>,<Attribute>,<Card0>,<Card1>,<Card2>,<Card3>{,<accountID>})
 BUILDIN_FUNC(countitem)
 {
-	int i, count = 0;
+	int i = 0, count = 0, aid = 3;
 	struct item_data* id = NULL;
 	struct script_data* data;
+	char *command = (char *)script_getfuncname(st);
+	uint8 loc = 0;
+	uint16 size;
+	struct item *items;
+	TBL_PC *sd = NULL;
 
-	TBL_PC* sd = script_rid2sd(st);
-	if( !sd ) {
-		script_pushint(st,0);
+	if( command[strlen(command) - 1] == '2' ) {
+		i = 1;
+		aid = 10;
+	}
+	if( script_hasdata(st,aid) ) {
+		if( !(sd = map_id2sd( (aid = script_getnum(st,aid)) )) ) {
+			ShowError("buildin_%s: player not found (AID=%d).\n", command, aid);
+			st->state = END;
+			return 1;
+		}
+	} else {
+		if( !(sd = script_rid2sd(st)) )
+			return 0;
+	}
+	if( !strncmp(command, "cart", 4) ) {
+		loc = 1;
+		size = MAX_CART;
+		items = sd->status.cart;
+	} else if( !strncmp(command, "storage", 7) ) {
+		loc = 2;
+		size = MAX_STORAGE;
+		items = sd->status.storage.items;
+	} //TODO: 3 - Guild Storage
+	else {
+		size = MAX_INVENTORY;
+		items = sd->status.inventory;
+	}
+
+	if( loc == 1 && !pc_iscarton(sd) ) {
+		ShowError("buildin_%s: Player doesn't have cart (CID:%d).\n", command, sd->status.char_id);
+		script_pushint(st,-1);
 		return 0;
 	}
 
-	data = script_getdata(st,2);
+	data = script_getdata(st, 2);
 	get_val(st, data); //Convert into value in case of a variable
 
 	if( data_isstring(data) ) //Item name
@@ -5972,36 +6005,36 @@ BUILDIN_FUNC(countitem)
 		id = itemdb_exists(conv_num(st, data));
 
 	if( id == NULL ) {
-		ShowError("buildin_countitem: Invalid item '%s'.\n", script_getstr(st,2)); //Returns string, regardless of what it was
+		ShowError("buildin_%s: Invalid item '%s'.\n", command, script_getstr(st,2)); //Returns string, regardless of what it was
 		script_pushint(st,0);
 		return 1;
 	}
 
-	if( script_lastdata(st) == 2 ) { //For countitem() function
+	if( !i ) { //For count/cart/storagecountitem function
 		int nameid = id->nameid;
-		for( i = 0; i < MAX_INVENTORY; i++ )
-			if( sd->status.inventory[i].nameid == nameid )
-				count += sd->status.inventory[i].amount;
-	} else { //For countitem2() function
+
+		for( i = 0; i < size; i++ )
+			if( &items[i] && items[i].nameid == nameid )
+				count += items[i].amount;
+	} else { //For count/cart/storagecountitem2 function
 		int nameid, iden, ref, attr, c1, c2, c3, c4;
 
 		nameid = id->nameid;
 		iden = script_getnum(st,3);
 		ref  = script_getnum(st,4);
 		attr = script_getnum(st,5);
-		c1 = (short)script_getnum(st,6);
-		c2 = (short)script_getnum(st,7);
-		c3 = (short)script_getnum(st,8);
-		c4 = (short)script_getnum(st,9);
+		c1 = script_getnum(st,6);
+		c2 = script_getnum(st,7);
+		c3 = script_getnum(st,8);
+		c4 = script_getnum(st,9);
 
-		for( i = 0; i < MAX_INVENTORY; i++ )
-			if( sd->status.inventory[i].nameid > 0 && sd->inventory_data[i] != NULL &&
-				sd->status.inventory[i].amount > 0 && sd->status.inventory[i].nameid == nameid &&
-				sd->status.inventory[i].identify == iden && sd->status.inventory[i].refine == ref &&
-				sd->status.inventory[i].attribute == attr && sd->status.inventory[i].card[0] == c1 &&
-				sd->status.inventory[i].card[1] == c2 && sd->status.inventory[i].card[2] == c3 &&
-				sd->status.inventory[i].card[3] == c4 )
-					count += sd->status.inventory[i].amount;
+		for( i = 0; i < size; i++ )
+			if( &items[i] && items[i].nameid > 0 && items[i].nameid == nameid &&
+				items[i].amount > 0 && items[i].identify == iden &&
+				items[i].refine == ref && items[i].attribute == attr &&
+				items[i].card[0] == c1 && items[i].card[1] == c2 &&
+				items[i].card[2] == c3 && items[i].card[3] == c4 )
+				count += items[i].amount;
 	}
 
 	script_pushint(st,count);
@@ -6706,24 +6739,46 @@ BUILDIN_FUNC(makeitem2) {
 	return SCRIPT_CMD_SUCCESS;
 }
 
-/// Counts / deletes the current item given by idx.
+/// Counts/deletes the current item given by idx.
 /// Used by buildin_delitem_search
 /// Relies on all input data being already fully valid.
-static void buildin_delitem_delete(struct map_session_data* sd, int idx, int* amount, bool delete_items)
+static void buildin_delitem_delete(struct map_session_data* sd, int idx, int* amount, uint8 loc, bool delete_items)
 {
 	int delamount;
-	struct item* inv = &sd->status.inventory[idx];
+	struct item *itm = NULL;
 
-	delamount = ( amount[0] < inv->amount ) ? amount[0] : inv->amount;
-
-	if( delete_items ) {
-		if( sd->inventory_data[idx]->type == IT_PETEGG && inv->card[0] == CARD0_PET ) { //Delete associated pet
-			intif_delete_petdata(MakeDWord(inv->card[1], inv->card[2]));
-		}
-		pc_delitem(sd, idx, delamount, 0, 0, LOG_TYPE_SCRIPT);
+	switch( loc ) {
+		case 1: //Cart
+			itm = &sd->status.cart[idx];
+			break;
+		case 2: //Storage
+			itm = &sd->status.storage.items[idx];
+			break;
+		default: //Inventory
+			itm = &sd->status.inventory[idx];
+			break;
 	}
 
-	amount[0]-= delamount;
+	delamount = (amount[0] < itm->amount) ? amount[0] : itm->amount;
+
+	if( delete_items ) {
+		if( itemdb_type(itm->nameid) == IT_PETEGG && itm->card[0] == CARD0_PET ) //Delete associated pet
+			intif_delete_petdata(MakeDWord(itm->card[1],itm->card[2]));
+		switch( loc ) {
+			case 1:
+				pc_cart_delitem(sd,idx,delamount,0,LOG_TYPE_SCRIPT);
+				break;
+			case 2:
+				storage_delitem(sd,idx,delamount);
+				log_pick_pc(sd,LOG_TYPE_SCRIPT,-delamount,itm);
+				break;
+			default:
+				pc_delitem(sd,idx,delamount,0,0,LOG_TYPE_SCRIPT);
+				break;
+		}
+	}
+
+	amount[0] -= delamount;
 }
 
 
@@ -6732,83 +6787,98 @@ static void buildin_delitem_delete(struct map_session_data* sd, int idx, int* am
 /// Relies on all input data being already fully valid.
 /// @param exact_match will also match item attributes and cards, not just name id
 /// @return true when all items could be deleted, false when there were not enough items to delete
-static bool buildin_delitem_search(struct map_session_data* sd, struct item* it, bool exact_match)
+static bool buildin_delitem_search(struct map_session_data* sd, struct item* it, bool exact_match, uint8 loc)
 {
 	bool delete_items = false;
-	int i, amount, important;
-	struct item* inv;
+	int i, amount, important, size;
+	struct item *items;
 
-	// Prefer always non-equipped items
+	//Prefer always non-equipped items
 	it->equip = 0;
 
-	// When searching for nameid only, prefer additionally
+	//When searching for nameid only, prefer additionally
 	if( !exact_match ) {
-		// Non-refined items
+		//Non-refined items
 		it->refine = 0;
-		// Card-less items
+		//Card-less items
 		memset(it->card, 0, sizeof(it->card));
+	}
+
+	switch( loc ) {
+		case 1:	//Cart
+			size = MAX_CART;
+			items = sd->status.cart;
+			break;
+		case 2:	//Storage
+			size = MAX_STORAGE;
+			items = sd->status.storage.items;
+			break;
+		default: //Inventory
+			size = MAX_INVENTORY;
+			items = sd->status.inventory;
+			break;
 	}
 
 	for( ;; ) {
 		amount = it->amount;
 		important = 0;
 
-		// 1st pass -- less important items / exact match
-		for( i = 0; amount && i < ARRAYLENGTH(sd->status.inventory); i++ ) {
-			inv = &sd->status.inventory[i];
+		//1st pass -- less important items / exact match
+		for( i = 0; amount && i < size; i++ ) {
+			struct item *itm = NULL;
 
-			if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) // Wrong / invalid item
+			if( !&items[i] || !(itm = &items[i])->nameid || itm->nameid != it->nameid ) //Wrong/invalid item
 				continue;
 
-			if( inv->equip != it->equip || inv->refine != it->refine ) { // Not matching attributes
+			if( itm->equip != it->equip || itm->refine != it->refine ) { //Not matching attributes
 				important++;
 				continue;
 			}
 
-			if( exact_match ) { // Not matching exact attributes
-				if( inv->identify != it->identify || inv->attribute != it->attribute || memcmp(inv->card, it->card, sizeof(inv->card)) )
-					continue;
+			if( exact_match ) {
+				if( itm->identify != it->identify || itm->attribute != it->attribute || memcmp(itm->card, it->card, sizeof(itm->card)) )
+					continue; //Not matching exact attributes
 			} else {
-				if( sd->inventory_data[i]->type == IT_PETEGG ) {
-					if( inv->card[0] == CARD0_PET && CheckForCharServer() ) // Pet which cannot be deleted
+				if( itemdb_type(itm->nameid) == IT_PETEGG ) {
+					if( itm->card[0] == CARD0_PET && CheckForCharServer() ) //Pet which cannot be deleted
 						continue;
-				} else if( memcmp(inv->card, it->card, sizeof(inv->card)) ) { // Named/carded item
+				} else if( memcmp(itm->card, it->card, sizeof(itm->card)) ) { //Named/carded item
 					important++;
 					continue;
 				}
 			}
 
-			// Count / delete item
-			buildin_delitem_delete(sd, i, &amount, delete_items);
+			//Count/delete item
+			buildin_delitem_delete(sd, i, &amount, loc, delete_items);
 		}
 
-		// 2nd pass -- any matching item
-		if( amount == 0 || important == 0 ) { // Either everything was already consumed or no items were skipped
+		//2nd pass -- any matching item
+		if( amount == 0 || important == 0 ) { //Either everything was already consumed or no items were skipped
 			;
 		} else
-			for( i = 0; amount && i < ARRAYLENGTH(sd->status.inventory); i++ ) {
-				inv = &sd->status.inventory[i];
+			for( i = 0; amount && i < size; i++ ) {
+				struct item *itm = NULL;
 
-				if( !inv->nameid || !sd->inventory_data[i] || inv->nameid != it->nameid ) // Wrong / invalid item
+				if( !&items[i] || !(itm = &items[i])->nameid || itm->nameid != it->nameid ) //Wrong/invalid item
 					continue;
 
-				// Pet which cannot be deleted
-				if( sd->inventory_data[i]->type == IT_PETEGG && inv->card[0] == CARD0_PET && CheckForCharServer() )
+				//Pet which cannot be deleted
+				if( itemdb_type(itm->nameid) == IT_PETEGG && itm->card[0] == CARD0_PET && CheckForCharServer() )
 					continue;
 
-				if( exact_match ) // Not matching attributes
-					if( inv->refine != it->refine || inv->identify != it->identify || inv->attribute != it->attribute || memcmp(inv->card, it->card, sizeof(inv->card)) )
-						continue;
+				if( exact_match )
+					if( itm->refine != it->refine || itm->identify != it->identify || itm->attribute != it->attribute || memcmp(itm->card, it->card, sizeof(itm->card)) )
+						continue; //Not matching attributes
 
-				// Count / delete item
-				buildin_delitem_delete(sd, i, &amount, delete_items);
+				//Count/delete item
+				buildin_delitem_delete(sd, i, &amount, loc, delete_items);
 			}
 
-		if( amount ) // Not enough items
+		if( amount ) //Not enough items
 			return false;
-		else if( delete_items ) // We are done with the work
+		else if( delete_items ) //We are done with the work
 			return true;
-		else // Get rid of the items now
+		else //Get rid of the items now
 			delete_items = true;
 	}
 }
@@ -6819,56 +6889,74 @@ static bool buildin_delitem_search(struct map_session_data* sd, struct item* it,
 ///
 /// delitem <item id>,<amount>{,<account id>}
 /// delitem "<item name>",<amount>{,<account id>}
+/// cartdelitem <item id>,<amount>{,<account id>}
+/// cartdelitem "<item name>",<amount>{,<account id>}
+/// storagedelitem <item id>,<amount>{,<account id>}
+/// storagedelitem "<item name>",<amount>{,<account id>}
 BUILDIN_FUNC(delitem)
 {
 	TBL_PC *sd;
 	struct item it;
 	struct script_data *data;
+	uint8 loc = 0;
+	char* command = (char*)script_getfuncname(st);
+
+	if( !strncmp(command, "cart", 4) )
+		loc = 1;
+	else if( !strncmp(command, "storage", 7) )
+		loc = 2;
+	//TODO: 3 - Guild Storage
 
 	if( script_hasdata(st,4) ) {
 		int account_id = script_getnum(st,4);
-		sd = map_id2sd(account_id); // <account id>
+
+		sd = map_id2sd(account_id); //<account id>
 		if( sd == NULL ) {
-			ShowError("script:delitem: player not found (AID=%d).\n", account_id);
+			ShowError("buildin_%s: player not found (AID=%d).\n", command, account_id);
 			st->state = END;
 			return 1;
 		}
 	} else {
-		sd = script_rid2sd(st);// attached player
+		sd = script_rid2sd(st); //Attached player
 		if( sd == NULL )
 			return 0;
+	}
+
+	if( loc == 1 && !pc_iscarton(sd) ) {
+		ShowError("buildin_cartdelitem: player doesn't have cart (CID=%d).\n", sd->status.char_id);
+		return 1;
 	}
 
 	data = script_getdata(st,2);
 	get_val(st,data);
 	if( data_isstring(data) ) {
-		const char* item_name = conv_str(st,data);
+		const char* item_name = conv_str(st, data);
 		struct item_data* id = itemdb_searchname(item_name);
+
 		if( id == NULL ) {
-			ShowError("script:delitem: unknown item \"%s\".\n", item_name);
+			ShowError("buildin_%s: unknown item \"%s\".\n", command, item_name);
 			st->state = END;
 			return 1;
 		}
-		it.nameid = id->nameid;// "<item name>"
+		it.nameid = id->nameid; //"<item name>"
 	} else {
-		it.nameid = conv_num(st,data);// <item id>
+		it.nameid = conv_num(st,data); //<item id>
 		if( !itemdb_exists( it.nameid ) ) {
-			ShowError("script:delitem: unknown item \"%d\".\n", it.nameid);
+			ShowError("buildin_%s: unknown item \"%d\".\n", command, it.nameid);
 			st->state = END;
 			return 1;
 		}
 	}
 
-	it.amount=script_getnum(st,3);
+	it.amount = script_getnum(st,3);
 
 	if( it.amount <= 0 )
-		return 0;// nothing to do
+		return 0; //Nothing to do
 
-	if( buildin_delitem_search(sd, &it, false) ) { // success
+	if( buildin_delitem_search(sd, &it, false, loc) ) //Success
 		return 0;
-	}
 
-	ShowError("script:delitem: failed to delete %d items (AID=%d item_id=%d).\n", it.amount, sd->status.account_id, it.nameid);
+	ShowError("buildin_%s: failed to delete %d items (AID=%d item_id=%d).\n", command, it.amount, sd->status.account_id, it.nameid);
 	st->state = END;
 	st->mes_active = 0;
 	clif_scriptclose(sd, st->oid);
@@ -6879,24 +6967,43 @@ BUILDIN_FUNC(delitem)
 ///
 /// delitem2 <item id>,<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
 /// delitem2 "<Item name>",<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
+/// cartdelitem2 <item id>,<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
+/// cartdelitem2 "<Item name>",<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
+/// storagedelitem2 <item id>,<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
+/// storagedelitem2 "<Item name>",<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>}
 BUILDIN_FUNC(delitem2)
 {
 	TBL_PC *sd;
 	struct item it;
 	struct script_data *data;
+	uint8 loc = 0;
+	char* command = (char*)script_getfuncname(st);
+
+	if( !strncmp(command, "cart", 4) )
+		loc = 1;
+	else if( !strncmp(command, "storage", 7) )
+		loc = 2;
+	//TODO: 3 - Guild Storage
 
 	if( script_hasdata(st,11) ) {
 		int account_id = script_getnum(st,11);
-		sd = map_id2sd(account_id); // <account id>
+
+		sd = map_id2sd(account_id); //<account id>
 		if( sd == NULL ) {
-			ShowError("script:delitem2: player not found (AID=%d).\n", account_id);
+			ShowError("buildin_%s: player not found (AID=%d).\n", command, account_id);
 			st->state = END;
 			return 1;
 		}
 	} else {
-		sd = script_rid2sd(st);// attached player
+		sd = script_rid2sd(st); //Attached player
 		if( sd == NULL )
 			return 0;
+	}
+
+	if( loc == 1 && !pc_iscarton(sd) ) {
+		ShowError("buildin_cartdelitem: player doesn't have cart (CID=%d).\n", sd->status.char_id);
+		script_pushint(st,-1);
+		return 1;
 	}
 
 	data = script_getdata(st,2);
@@ -6904,38 +7011,38 @@ BUILDIN_FUNC(delitem2)
 	if( data_isstring(data) ) {
 		const char* item_name = conv_str(st,data);
 		struct item_data* id = itemdb_searchname(item_name);
+
 		if( id == NULL ) {
-			ShowError("script:delitem2: unknown item \"%s\".\n", item_name);
+			ShowError("buildin_%s: unknown item \"%s\".\n", command, item_name);
 			st->state = END;
 			return 1;
 		}
-		it.nameid = id->nameid;// "<item name>"
+		it.nameid = id->nameid; //"<item name>"
 	} else {
-		it.nameid = conv_num(st,data);// <item id>
+		it.nameid = conv_num(st,data); //<item id>
 		if( !itemdb_exists( it.nameid ) ) {
-			ShowError("script:delitem: unknown item \"%d\".\n", it.nameid);
+			ShowError("buildin_%s: unknown item \"%d\".\n", command, it.nameid);
 			st->state = END;
 			return 1;
 		}
 	}
 
-	it.amount=script_getnum(st,3);
-	it.identify=script_getnum(st,4);
-	it.refine=script_getnum(st,5);
-	it.attribute=script_getnum(st,6);
-	it.card[0]=(short)script_getnum(st,7);
-	it.card[1]=(short)script_getnum(st,8);
-	it.card[2]=(short)script_getnum(st,9);
-	it.card[3]=(short)script_getnum(st,10);
+	it.amount = script_getnum(st,3);
+	it.identify = script_getnum(st,4);
+	it.refine = script_getnum(st,5);
+	it.attribute = script_getnum(st,6);
+	it.card[0] = (short)script_getnum(st,7);
+	it.card[1] = (short)script_getnum(st,8);
+	it.card[2] = (short)script_getnum(st,9);
+	it.card[3] = (short)script_getnum(st,10);
 
 	if( it.amount <= 0 )
-		return 0;// nothing to do
+		return 0; //Nothing to do
 
-	if( buildin_delitem_search(sd, &it, true) ) { // success
-		return SCRIPT_CMD_SUCCESS;
-	}
+	if( buildin_delitem_search(sd, &it, true, loc) ) //Success
+		return 0;
 
-	ShowError("script:delitem2: failed to delete %d items (AID=%d item_id=%d).\n", it.amount, sd->status.account_id, it.nameid);
+	ShowError("buildin_%s: failed to delete %d items (AID=%d item_id=%d).\n", command, it.amount, sd->status.account_id, it.nameid);
 	st->state = END;
 	st->mes_active = 0;
 	clif_scriptclose(sd, st->oid);
@@ -7452,14 +7559,14 @@ BUILDIN_FUNC(repairall)
 
 	if(repaircounter) {
 		clif_misceffect(&sd->bl,3);
-		clif_equiplist(sd);
+		clif_equiplistR,sd->vd.cloth_colSCRIPT_CMD_SUCCESSr);
+		clif_skillinfoblock(sd);
 	}
 
-	return SCRIPT_CMD_SUCCESS;
+	return 0;
 }
 
-/*==========================================
- * Chk if player have something equiped at pos
+/*==Chk if player have something equiped at pos
  *------------------------------------------*/
 BUILDIN_FUNC(getequipisequiped)
 {
@@ -7477,12 +7584,14 @@ BUILDIN_FUNC(getequipisequiped)
 	if(i >= 0)
 		script_pushint(st,1);
 	else
-		script_pushint(st,0);
-	return SCRIPT_CMD_SUCCESS;
+		script_pushint(st,0;
+	}
+	mapitSCRIPT_CMD_SUCCESSfree(iter);
+	script_pushint(st,1);
+	return 0;
 }
 
-/*==========================================
- * Chk if the player have something equiped at pos
+/*==Chk if the player have something equiped at pos
  * if so chk if this item ain't marked not refinable or rental
  * Return (npc)
  *	1 : true
@@ -11263,9 +11372,9 @@ BUILDIN_FUNC(maprespawnguildid)
 		return 0;
 
 	//Catch ALL players (in case some are 'between maps' on execution time)
-	map_foreachpc(buildin_maprespawnguildid_sub_pc,m,g_id,flag);
-	if (flag&4) //Remove script mobs.
-		map_foreachinmap(buildin_mSCRIPT_CMD_SUCCESS;
+	map_foreachpc(buildin_maprespawnguildi script mobs.
+		map_foreachinmap(buildin_maprespawnguildid_sub_mob,m,BL_MOB);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(agitstart)
@@ -11296,29 +11405,26 @@ BUILDIN_FUNC(agitend2)
 {
 	if(agit2_flag == 0) return SCRIPT_CMD_SUCCESS; // Agit2 already End.
 	agit2_flag = 0;
-	guild_agit2_end();
-	return SCRIPT_CMD_SUCCESS)
-{
-	script_pushint(st,agit_flag);
+	guild_agit2_end(ay*	return SCRIPT_CMD_SUCCESSskill_bonus_timer, sd->bl.id, 0);
+
 	return 0;
 }
 
-/*==========================================
- * Returns whether woe is on or off.	// Choice script
+/*==Returns whether woe is on or off.	// Choice script
  *------------------------------------------*/
-BUILDIN_FUNC(agitchecSCRIPT_CMD_SUCCESS)
+BUILDIN_FUNC(agitcheck)
 {
-	script_pushint(st,agit_flag);
+	script_pushint(st,agit_flagay*	return SCRIPT_CMD_SUCCESSskill_bonus_timer, sd->bl.id, 0);
+
 	return 0;
 }
 
-/*==========================================
- * Returns whether woese is on or off.	// Choice script
+/*==Returns whether woese is on or off.	// Choice script
  *------------------------------------------*/
-BUILDIN_FUNC(agitcheck2SCRIPT_CMD_SUCCESS
+BUILDIN_FUNC(agitcheck2)
 {
 	script_pushint(st,agit2_flag);
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /// Sets the guild_id of this npc.
@@ -11343,19 +11449,19 @@ BUILDIN_FUNC(flagemblem)
 		/* guild flag caching */
 		if( g_id ) /* adding a id */
 			guild_flag_add(nd);
-		else if( changed ) /* removing a fSCRIPT_CMD_SUCCESSag */
+		else if( changed ) /* removing a flag */
 			guild_flag_remove(nd);
 	}
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(getcastlename)
 {
 	const char* mapname = mapindex_getmapname(script_getstr(st,2),NULL);
 	struct guild_castle* gc = guild_mapname2gc(mapname);
-	const char* name = (gc) ? gc->castle_name SCRIPT_CMD_SUCCESS "";
+	const char* name = (gc) ? gc->castle_name : "";
 	script_pushstrcopy(st,name);
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(getcastledata)
@@ -11379,7 +11485,8 @@ BUILDIN_FUNC(getcastledata)
 			script_pushint(st,gc->defense); break;
 		case 4:
 			script_pushint(st,gc->triggerE); break;
-		break;
+		case 5:
+			script_pushint(st,gc->triggerD); break;
 		case 6:
 			script_pushint(st,gc->nextTime); break;
 		case 7:
@@ -12619,14 +12726,13 @@ BUILDIN_FUNstruct script_data *data;
  *------------------------------------------*/
 /// skilleffect <skill id>,<level>
 /// skilleffect "<skill struct script_data *data = script_getdata(st,2);
-	TBL_PC *sd;
+	TBL_PC *sd = script_rid2sd(st);
 	uint16 skill_id, skill_lv;
 
 	get_val(st,data); //Convert into value in case of a variable
 	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	skill_lv = script_getnum(st,3);
-	sd = ;
-	uint16 skill_lv=sc/* Ensure we're standing because the following packet causes the client to virtually set the char to stand,
+sc/* Ensure we're standing because the following packet causes the client to virtually set the char to stand,
 	 * which leaves the server thinking it still is sitting. */
 	if( pc_issit(sd) ) {
 		pc_setstand(sd);
@@ -12682,6 +12788,7 @@ BUILDIN_ = UNC(specialeffect)
 	} else {
 		if( target == SELF ) {
 			TBL_PC *sd = script_rid2sd(st);
+
 			if( sd )
 				clif_specialeffect_single(bl,type,sd->fd);
 		} else
@@ -15035,7 +15142,7 @@ BUILDIN_FUNC(npcshopattach)
 	struct npc_data* nd = npc_name2id(npcname);
 	int flag = 1;
 
-	if( script_hasdata(st,3) )( nd->subtype != SHOP && nd->subtype != CASHSHOP && nd->subtype != ITEMSHOP && nd->subtype != POINTSHOP ) )
+	if( script_hasdata(st,3) )(nd->subtype != SHOP && nd->subtype != CASHSHOP && nd->subtype != ITEMSHOP && nd->subtype != POINTSHOP) )
 	{ //Not Found.
 		script_pushint(st,0);
 		return 0;
@@ -15176,8 +15283,7 @@ BUILDIN_Fstruct script_data *data;
 	if( mob ) { //We got a valid monster, check for item drop on monster
 		for( i = 0; i < MAX_MOB_DROP; i++ ) {
 			if( mob->dropitem[i].nameid == item_id ) {
-			if(mob->dropitem[i].nameid == item_id) {
-				mob->dropitem[i].nameid = 0;
+			if(mob->dropitem[i].namei= 0;
 				mob->dropitem[i].p = 0;
 				script_pushint(st,1);
 				return 0;
@@ -15186,27 +15292,34 @@ BUILDIN_Fstruct script_data *data;
 		//No drop on that monster
 		script_pushint(st,0);
 	} else {
-		ShowWarning("delmonsterdrop: bad mob id given	return SCRIPT_CMD_SUCCESS;
-}tk here if needed/once we get rid of RENEWAL
+		ShowWarning("delmonsterdrop: bad mob id given %d\n",script_getnum(st,2));
+		return 1;
+	}
+	return SCRIPT_CMD_SUCCESS	script_pushint(st, instance_id);
 
-/*==========================================
- * Returns some values of a monster [Lupus]
+	return 0;
+}
+
+/*==Returns some values of a monster [Lupus]
  * Name, Level, race, size, etc...
 	getmonsterinfo(monsterID,queryIndex);
  *------------------------------------------*/
 BUILDIN_FUNC(getmonsterinfo)
 {
 	struct mob_db *mob;
-	intmob_id;
+	int mob_id;
 
 	mob_id = script_getnum(st,2);
-	if ( !mobdb_checkid(mob_id) ) {
-		//ShowError("buildin_getmonster( !script_getnum(st,3) ) //R, mob_id);
-		if ( !script_getnum(st,3) ) //requested a string
+	if( !mobdb_checkid(mob_id) ) {
+		//ShowError("buildin_getmonsterinfo: Wrong Monster ID: %i\n", mob_id);
+		if( !script_getnum(st,3) ) //Requested a string
 			script_pushconststr(st,"null");
 		else
 			script_pushint(st,-1);
-		( script_getnum(st,3) ) {
+		return -1;
+	}
+	mob = mob_db(mob_id);
+	switch( script_getnum(st,3) ) {
 		case 0: script_pushstrcopy(st,mob->jname); break;
 		case 1: script_pushint(st,mob->lv); break;
 		case 2: script_pushint(st,mob->status.max_hp); break;
@@ -15216,8 +15329,7 @@ BUILDIN_FUNC(getmonsterinfo)
 		case 6: script_pushint(st,mob->status.rhw.atk2); break;
 		case 7: script_pushint(st,mob->status.def); break;
 		case 8: script_pushint(st,mob->status.mdef); break;
-		case 9:hint(st,mob->status.mdef); break;
-		case 9:  script_pushint(st,mob->status.str); break;
+		case 9: script_pushint(st,mob->status.str); break;
 		case 10: script_pushint(st,mob->status.agi); break;
 		case 11: script_pushint(st,mob->status.vit); break;
 		case 12: script_pushint(st,mob->status.int_); break;
@@ -15230,7 +15342,8 @@ BUILDIN_FUNC(getmonsterinfo)
 		case 19: script_pushint(st,mob->status.race); break;
 		case 20: script_pushint(st,mob->status.def_ele); break;
 		case 21: script_pushint(st,mob->status.mode); break;
-		case 22: script_pushint(st,mob->mexp);Wrong index
+		case 22: script_pushint(st,mob->mexp); break;
+		default: script_pushint(st,-1); //Wrong index
 	}
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -15238,46 +15351,35 @@ BUILDIN_FUNC(getmonsterinfo)
 //Check vending [Nab4]
 BUILDIN_FUNC(checkvending)
 {
-	TBL_PC *sd = NULL;
-
-	if( script_hasdata(st,2) )
-		sd = map_nick2sd(script_getstr(st,2));
-	else
-		sd = script_rid2sd(st);
-
-	if( sd )
-		script_pushint(st,t_rid2sd(st);
-
-	if(sd)
-		script_pushint(st, sd->state.autotrade ? 2 : sd->st	return SCRIPT_CMD_SUCCESSg);
-	//Check chatting [Marka]
-BUILDIN_FUNC(checkchatting)
-{
-	TBL_PC *sd = NULL;
-
-	if( script_hasdata(st,2) )
-		sd = map_nick2sd(script_getstr(st,2));
-	else
-		sd = script_rid2sd(st);
-
-	if( sd 2));
-	else
-		sd = script_rid2sd(st);
-
-	if(sd)
-		script_pushint(st,(sd->c	return SCRIPT_CMD_SUCCESS));
+	TBL_PC *sd = NULL----------*/
+BUILDIN_FUNC(2) )
+		sd = map_nick2sd(script_getstr(st,, 2) )
+		sd = map_nick2sd(script_getstr(st, 2))
+		script_pushint(st,sd->state.autotrade ? 2 : sd->state.vending);
 	else
 		script_pushint(st,0);
-
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDI( script_hasdata(st,2) )
-		sd = map_nick2sd(script_getstr(st,2));
+//Check chatting [Marka]
+BUILDIN_FUNC(checkchatting)
+{
+	TBL_PC *sd = NULL----------*/
+BUILDIN_FUNC(2) )
+		sd = map_nick2sd(script_getstr(st,, 2) )
+		sd = map_nick2sd(script_getstr(st, 2))
+		script_pushint(st,(sd->chatID != 0));
 	else
-		sd = script_rid2sd(st);
+		script_pushint(st,0);
+	return SCRIPT_CMD_SUCCESS;
+}
 
-	if( sd )
+BUILDIN_FUNC(checkidle)
+{
+	TBL_PC *sd = NULL----------*/
+BUILDIN_FUNC(2) )
+		sd = map_nick2sd(script_getstr(st,, 2) )
+		sd = map_nick2sd(script_getstr(st, 2))
 		script_pushint(st,DIFF_TICK(last_tick,sd->idletime));
 	else
 		script_pushint(st,0);
@@ -18281,8 +18383,11 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(getnameditem,"vv"),
 	BUI?LDIN_DEF2(grouprandomitem,"groupranditem","i"),
 	makeitem2,"visiiiiiiiupranditem","i"),
-	BUILDIN_DEF(makeitem,"visii"),
-	BUILDIN_DEF(delitem,"vi?"),
+	BUILDIN_DEF(makeitem,"visii"2(delitem,"storagedelitem","vi?"),
+	BUILDIN_DEF2(delitem,"cartdelitem","vi?"),
+	BUILDIN_DEF(delitem2,"viiiiiiii?"),
+	BUILDIN_DEF2(delitem2,"storagedelitem2","viiiiiiii?"),
+	BUILDIN_DEF2(delitem2,"cartdelitem2"IN_DEF(delitem,"vi?"),
 	BUILDIN_DEF(delitem2,"viiiiiiii?"),
 	BUILDIN_DEF2(enableitemuse,"enable_items",""),
 	BUILDIN_DEF2(disableitemuse,"disable_items",""),
@@ -18291,9 +18396,12 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(heal,"ii"),
 	BUILDIN_DEF(itemheal,"ii"),
 	BUILDIN_DEF(percentheal,"ii"),
-	BUILDIN_DEF(rand,"i?"),
-	BUILDIN_DEF(countitem,"v"),
-	BUILDIN_DEF2(countitem,"countitem2","viiiiiii"),
+	BUILD?"),
+	BUILDIN_DEF2(countitem,"storagecountitem","v?"),
+	BUILDIN_DEF2(countitem,"cartcountitem","v?"),
+	BUILDIN_DEF2(countitem,"countitem2","viiiiiii?"),
+	BUILDIN_DEF2(countitem,"storagecountitem2","viiiiiii?"),
+	BUILDIN_DEF2(countitem,"cartcountitem2","viiiiiii?UILDIN_DEF2(countitem,"countitem2","viiiiiii"),
 	BUILDIN_DEF(checkweight,"vi*"),
 	BUILDIN_DEF(checkweight2,"rr"),
 	BUILDIN_DEF(readparam,"i?"),
