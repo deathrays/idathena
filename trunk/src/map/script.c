@@ -9195,12 +9195,13 @@ BUILDIN_FUNC(clone)
 	TBL_PC *sd, *msd = NULL;
 	int char_id, master_id = 0, x, y, mode = 0, flag = 0, m;
 	unsigned int duration = 0;
-	const char *map, *event = "";
+	const char *map, *event;
 
-	map = script_getstr(st,2);
-	x = script_getnum(st,3);
-	y = script_getnum(st,4);
-	event = script_getstr(st,5);
+	map->chat_id)) == NULL )
+		return 0;
+
+	map_name = script_getstr(st,2);
+	x = scrievent = script_getstr(st,5);
 	char_id = script_getnum(st,6);
 
 	if( script_hasdata(st,7) )
@@ -10401,11 +10402,10 @@ BUILDIN_FUNC(changebase)
 	if(sd == NULL)
 		return 0;
 
-	vclass = script_getnum(st,2);
+	vclass = scr t_getnum(st,2);
 	if(vclass == JOB_WEDDING)
 	{
-		if (!battle_config.wedding_modifydisplay || //Do not show the wedding sprites
-			sd->class_&JOBL_BABY //Baby classes screw up when showing wedding sprites. [Skotlex] They don't seem to anymore.
+		if (!battle_config.wedding_modifydisplay || //Do not show) //Baby classes screw up when showing wedding sprites. [Skotlex] They don't seem to anymore.. [Skotlex] They don't seem to anymore.
 			)
 		return 0;
 	}
@@ -10426,14 +10426,12 @@ BUILDIN_FUNC(changebase)
 /*==========================================
  * êUnequip all item and request for a changesex to char-serv
  *------------------------------------------*/
-BUILDIN_FUNC(changesex)
-{
-	int i;
-	TBL_PC *sd = NULL;
+BUILDIN_FU
 	sd = script_rid2sd(st);
 
 	pc_resetskill(sd,4);
-	// to avoid any problem with equipment and invalid sex, equipment is unequiped.
+	//To avoid any problem with equipment and invalid sex, equipment is unequiped.
+	for( i = 0; i < d sex, equipment is unequiped.
 	for( i=0; i<EQI_MAX; i++ )
 		if( sd->equip_index[i] >= 0 ) pc_unequipitem(sd, sd->equip_SCRIPT_CMD_SUCCESSndex[i], 3);
 	chrif_changesex(sd);
@@ -10446,16 +10444,18 @@ BUILDIN_FUNC(changesex)
 BUILDIN_FUNC(globalmes)
 {
 	struct block_list *bl = map_id2bl(st->oid);
-	struct npc_data *nd = (struct npc_data *)bl;
-	const char *name=NULL,*mes;
+	struct npc_data *n = NULL, *mes;
 
-	mes=script_getstr(st,2);
-	if(mes==NULL) return 0;
-	
-	if(script_hasdata(st,3)){	// npc name to display
-		name=script_getstr(st,3);
-	} else {
-		name=nd->name;	//use current npc name
+	mes = script_getstr(st,2);
+	if( mes == NULL )
+		return 0;
+
+	if(script_hasdata(st,3)) { //NPC name to display
+		name = script_getstr(st,3);
+	else
+		name = nd->name; //Use current npc name
+
+	npc_globalmessage(name,mes); // B name
 	}
 
 	npc_globalmessage(name,mes);	// SCRIPT_CMD_SUCCESSadd_str("$@warpwaitingpcnum"), i);
@@ -17574,7 +17574,7 @@ static int atcommand_cleanfloor_sub(struct block_list *bl, va_list ap)
     return 0;
 }
 
-BUILDIN_FUNC(cleanmap)
+BUILDIN(cleanmap)
 {
 	const char *map;
 	int16 m = -1;
