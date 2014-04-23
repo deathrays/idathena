@@ -2959,15 +2959,16 @@ void pop_stack(struct script_state* st, int start, int end)
 	if( end > stack->sp )
 		end = stack->sp;
 	if( start >= end )
-		return;// nothing to pop
+		return; // Nothing to pop
 
-	// free stack elements
+	// Free stack elements
 	for( i = start; i < end; i++ ) {
 		data = &stack->stack_data[i];
 		if( data->type == C_STR )
 			aFree(data->u.str);
 		if( data->type == C_RETINFO ) {
 			struct script_retinfo* ri = data->u.ri;
+
 			if( ri->var_function )
 				script_free_vars(ri->var_function);
 			if( data->ref )
@@ -2976,13 +2977,13 @@ void pop_stack(struct script_state* st, int start, int end)
 		}
 		data->type = C_NOP;
 	}
-	// move the rest of the elements
+	// Move the rest of the elements
 	if( stack->sp > end ) {
 		memmove(&stack->stack_data[start], &stack->stack_data[end], sizeof(stack->stack_data[0])*(stack->sp - end));
 		for( i = start + stack->sp - end; i < stack->sp; ++i )
 			stack->stack_data[i].type = C_NOP;
 	}
-	// adjust stack pointers
+	// Adjust stack pointers
 	     if( st->start > end )   st->start -= end - start;
 	else if( st->start > start ) st->start = start;
 	     if( st->end > end )   st->end -= end - start;
@@ -3001,16 +3002,17 @@ void pop_stack(struct script_state* st, int start, int end)
  *------------------------------------------*/
 void script_free_vars(struct DBMap* storage)
 {
-	if( storage ) { // destroy the storage construct containing the variables
+	if( storage ) // Destroy the storage construct containing the variables
 		db_destroy(storage);
-	}
 }
 
 void script_free_code(struct script_code* code)
 {
-	script_free_vars( code->script_vars );
-	aFree( code->script_buf );
-	aFree( code );
+	nullpo_retv(code);
+
+	script_free_vars(code->script_vars);
+	aFree(code->script_buf);
+	aFree(code);
 }
 
 /// Creates a new script state.
@@ -11372,7 +11374,7 @@ BUILDIN_FUNC(maprespawnguildid)
 		return 0;
 
 	//Catch ALL players (in case some are 'between maps' on execution time)
-	map_foreachpc(buildin_maprespawnguildi script mobs.
+	map_foreachpc(buildin_mapres) //Remove script mobs.
 		map_foreachinmap(buildin_maprespawnguildid_sub_mob,m,BL_MOB);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -13822,7 +13824,7 @@ BUILDIN_FUNC(autoequip)
 		ShowError("buildin_autoequip: Item '%dSCRIPT_CMD_FAILURE;
 	}
 
-	item_data->flag.autoequip = flag > 0 ? 1 : 0;
+	item_data->flag.autoequip = (flag > 0 ? 1 : 0);
 	return SCRIPT_CMD_SUCCESSdata->flag.autoequip = flag>0?1:0;
 	return 0;
 }
@@ -15283,7 +15285,7 @@ BUILDIN_Fstruct script_data *data;
 	if( mob ) { //We got a valid monster, check for item drop on monster
 		for( i = 0; i < MAX_MOB_DROP; i++ ) {
 			if( mob->dropitem[i].nameid == item_id ) {
-			if(mob->dropitem[i].namei= 0;
+			if(mob->dropim[i].nameid = 0;
 				mob->dropitem[i].p = 0;
 				script_pushint(st,1);
 				return 0;
