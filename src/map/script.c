@@ -17725,14 +17725,14 @@ BUILDIN_FUNC(countbound)
 	int i, type, j = 0, k = 0;
 	TBL_PC *sd;
 
-	if( (sd = script_rid2sd(st)) == NULL ? script_getnum(st,2) : 0;
+	if( (sd = script(script_hasdata(st,2) ? script_getnum(st,2) : 0);
 
-	for( i = 0; a(st,2)?script_getnum(st,2):0;
-
-	for( i = 0;i < MAX_INVENTORY; i++ ) {
-		if( sd->status.inventory[i].nameid > 0 && (
+	for( i = 0; i < MAX_INVENTORY; i++ ) {
+		if( sd->status.inventory[i].nameid > 0 &&
+			( sd->status.inventory[i].nameid > 0 && (
 			(!type && sd->status.inventory[i].bound > 0) ||
-			(type && sd->status.inventory[i].bound == type)
+			(ty) )
+		d->status.inventory[i].bound == type)
 		) ) {
 			pc_setrg(sd,reference_uid(add_str("@bound_items"), k),sd->status.inventory[i].nameid);
 			k++;
