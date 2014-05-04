@@ -13524,7 +13524,8 @@ BUILDIN_FUNC(logmes)
 	int tick = gettick();
 
 	sd = script_rid2sd(st);
-	if( !sd ) return 0;
+	if( !sd )
+		return 0;
 
 	str	= script_getstr(st,2);
 	_class = script_getnum(st,3);
@@ -15285,7 +15286,7 @@ BUILDIN_Fstruct script_data *data;
 	if( mob ) { //We got a valid monster, check for item drop on monster
 		for( i = 0; i < MAX_MOB_DROP; i++ ) {
 			if( mob->dropitem[i].nameid == item_id ) {
-			if(mob->dropim[i].nameid = 0;
+			if(mob->drotem[i].nameid = 0;
 				mob->dropitem[i].p = 0;
 				script_pushint(st,1);
 				return 0;
