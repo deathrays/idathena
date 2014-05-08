@@ -8191,23 +8191,38 @@ BUILDIN_FUNC(addtoskill)
 /// guildskill "<skill name>",<amount>;
 BUILDIN_FUNC(guildskill)
 {
-	int id;
+	int skill_id, id, max_points;
 	int level;
 	TBL_PC* sd;
-	int i;
+	struct guild *gd;
+	struct guild_skill gd_skill;
 	struct script_data *data;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
 		return 0; // No player attached, report source
 
+	if( (gd = sd->guild) == NULL )
+		return 1;
+
 	data = script_getdata(st,2);
 	get_val(st,data); // Convert into value in case of a variable
-	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	skill_id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	level = script_getnum(st,3);
-	for( i = 0; i < level; i++ )
-		guild_skillup(sd,id);
 
+	id = skill_id - GD_SKILLBASE;
+	max_points = guild_skill_get_max(skill_id);
+
+	if( (gd->skill[id].lv + level) > max_points )
+		level = max_points - gd->skill[id].lv;
+
+	if( level == 0 )
+		return 1;
+
+	memcpy(&gd_skill,&(gd->skill[id]),sizeof(gd->skill[id]));
+	gd_skill.lv += level;
+
+	intif_guild_change_basicinfo(gd->guild_id,GBI_SKILLLV,&(gd_skill),sizeof(gd_skill));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -11357,8 +11372,7 @@ static int buildin_maprespawnguildid_sub_mob(struct block_list *bl,va_list ap)
 /*
  * Function to kick guild members out of a map and to their save points.
  * m : mapid
- * g_id : owner guild id
- * flag&1 : Warp out owners
+ * g_irs
  * flag&2 : Warp out outsiders
  * flag & 4 : reserved for mobs
 */
@@ -11374,7 +11388,8 @@ BUILDIN_FUNC(maprespawnguildid)
 		return 0;
 
 	//Catch ALL players (in case some are 'between maps' on execution time)
-	map_foreachpc(buildin_mapres) //Remove script mobs.
+	map_foreachpc(buildin_maprespawnguildid_sub_pc,m,g_id,flag);
+	if (flag&4) //Remove script mobs.
 		map_foreachinmap(buildin_maprespawnguildid_sub_mob,m,BL_MOB);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -15272,13 +15287,13 @@ BUILDIN_Fstruct script_data *data;
 
 	data = script_getdata(st,2);
 	get_val(st,data); //Convert into value in case of a variable
-	if( data_isstring(data) ;
-	int item_id,i;
-
-	if(script_isstring(st,2))
+	if( data_isstring(data) )
 		mob = mob_db(mobdb_searchname(script_getstr(st,2)));
 	else
-		mob = mob_db(script_getn	if( !itemdb_exists(item_id) ) {
+		mob = mob_db(script_getnum(st,2));
+
+	item_id = script_getnum(st,3);
+	if( !itemdb_exists(item_id) ) {
 		ShowError("delmonsterdrop: Nonexistant item %d requested.\n",item_id);
 		return 1;
 	}
@@ -15286,7 +15301,7 @@ BUILDIN_Fstruct script_data *data;
 	if( mob ) { //We got a valid monster, check for item drop on monster
 		for( i = 0; i < MAX_MOB_DROP; i++ ) {
 			if( mob->dropitem[i].nameid == item_id ) {
-			if(mob->drotem[i].nameid = 0;
+				mob->dropitem[i].nameid = 0;
 				mob->dropitem[i].p = 0;
 				script_pushint(st,1);
 				return 0;
