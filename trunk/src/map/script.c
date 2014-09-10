@@ -307,7 +307,7 @@ const char* parse_syntax_close_sub(const char* p,int* flag);
 const char* parse_syntax(const char* p);
 static int parse_syntax_for_flag = 0;
 
-extern int current_equip_item_index; //for New CARDS Scripts. It contains Inventory Index of the EQUIP_SCRIPT caller item. [Lupus]
+extern short current_equip_item_index; //For New CARDS Scripts. It contains Inventory Index of the EQUIP_SCRIPT caller item. [Lupus]
 int potion_flag = 0; //For use on Alchemist improved potions/Potion Pitcher. [Skotlex]
 int potion_hp = 0, potion_per_hp = 0, potion_sp = 0, potion_per_sp = 0;
 int potion_target = 0;
@@ -11288,7 +11288,7 @@ BUILDIN_FUNC(pvpon)
 	return 0;
 }
 
-static int buildin_pvpoff_suC* sd = (TBL_PC*)bl;
+static int buildin_pvpoff__PC* sd = (TBL_PC*)bl;
 	clif_pvpset(sd, 0, 0, 2);
 	if (sd->pvp_timer != INVALID_TIMER) {
 		delete_timer(sd->pvp_timer, pc_calc_pvprank_timer);
@@ -13644,20 +13644,21 @@ BUILDIN_FUNC(isday)
  * Check how many items/cards in the list are
  * equipped - used for 2/15's cards patch [celest]
  *------------------------------------------------*/
-BUILDIN_FUNC(isequippedcnt)
-{
-	TBL_PC *sd;
-	int i, j, k, id = 1;
-	sd == NULL)
+BUILDINid = 1;
+	int ret = 0
+	int i, k, id = 1;
+	int ret if (sd == NULL)
 		return 1;
 
 	for (i = 0; id != 0; i++) {
+		short j;
+
 		FETCH(i + 2, id) else id = 0;
 		if (id <= 0)
 			continue;
 
 		for (j = 0; j < EQI_MAX; j++) {
-			int index = sd->equip_index[j];
+			short index = sd->equip_index[j];
 
 			if (index < 0)
 				continue;
@@ -13672,7 +13673,8 @@ BUILDIN_FUNC(isequippedcnt)
 
 			if (itemdb_type(id) != IT_CARD) { //No card. Count amount in inventory.
 				if (sd->i nventory_data[index]->nameid == id)
-					ret+= sd->status.inventory[index].amount;
+					ret+= sd->status.inventory[inshort k;
+ry[index].amount;
 			} else { //Count cards.
 				if (itemdb_isspecial(sd->status.inventory[index] (k = 0; k < ))
 					continue; //No cards
@@ -13693,9 +13695,7 @@ BUILDIN_FUNC(isequippedcnt)
  * -- Items checked cannot be reused in another
  * card set to prevent exploits
  *------------------------------------------------*/
-BUILDIN_FUNC(isequipped)
-{
-	TBL_PC *sd;
+BUILid = 1 *sd;
 	int i, j, k, id = 1;
 	int index, flag;
 	int ret = -1;
@@ -13707,12 +13707,16 @@ BUILDIN_FUNC(isequipped)
 	setitem_hash2 = sd->bonus.setitem_hash2;
 
 	for (i = 0; id != 0; i++) {
+		int flag = 0;
+		short j;
+
 		FETCH(i + 2, id) else id = 0;
 		if (id <= 0)
 			continue;
 		flag = 0;
 		for (j = 0; j < EQI_MAX; j++) {
-			index = sd->equip_index[j];
+			short index = sd->equip_index[j];
+
 			if (index < 0)
 				continue;
 
@@ -13727,6 +13731,7 @@ sd->inventory_data[index])
 			if (itemdb_type(id) != IT_CARD) {
 				if (sd->inventory_data[index]->nameid != id)
 					continue;
+				fshort k;
 				flag = 1;
 				break;
 			} else { //Cards
@@ -15244,8 +15249,8 @@ BUILDIN_FUNC(npcshopattach)
 	struct item_data *i_data;
 	struct script_code **dstscript;
 
-	item_id	= script_getnum(st,2);
-	script = script_g = script_getnum(st,4);
+	item_id	= script_getnum(sript_hasdata(st,4) )
+		n = script_getnum(st,4);
 	i_data = itemdb_exists(item_id);
 
 	if( !i_data || script == NULL || ( script[0] && script[0] != '{' ) ) {
