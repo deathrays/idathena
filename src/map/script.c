@@ -6252,6 +6252,7 @@ BUILDIN_FUNC(checkweight2) {
  * getitembound <item id>,<amount>,<type>{,<account ID>};
  * getitembound "<item id>",<amount>,<type>{,<account ID>};
  * Type:
+ *	0 - No bound
  *	1 - Account Bound
  *	2 - Guild Bound
  *	3 - Party Bound
@@ -6291,25 +6292,25 @@ BUILDIN_FUNC(getitem)
 
 	//<Amount>
 	if( (amount = script_getnum(st,3)) <= 0 )
-		return 0; //return if amount <= 0, skip the useles iteration
+		return 0; //Return if amount <= 0, skip the useles iteration
 
 	memset(&it,0,sizeof(it));
 	it.nameid = nameid;
 	it.identify = 1;
+	it.bound = BOUND_NONE;
 
 	if( !strcmp(command,"getitembound") ) {
 		char bound = script_getnum(st,4);
 
-		if( bound > BOUND_NONE && bound < BOUND_MAX ) {
-			it.bound = bound;
-			if( script_hasdata(st,5) )
-				sd = map_id2sd(script_getnum(st,5));
-			else
-				sd = script_rid2sd(st); //Attached player
-		} else { //Not a correct bound type
+		if( bound < BOUND_NONE || bound >= BOUND_MAX ) {
 			ShowError("script_getitembound: Not a correct bound type! Type=%d\n",bound);
 			return 1;
 		}
+		if( script_hasdata(st,5) )
+			sd = map_id2sd(script_getnum(st,5));
+		else
+			sd = script_rid2sd(st); //Attached player
+		it.bound = bound;
 	} else if( script_hasdata(st,4) )
 		sd = map_id2sd(script_getnum(st,4)); //<Account ID>
 	else
@@ -6338,7 +6339,17 @@ BUILDIN_FUNC(getitem)
 }
 
 /*==========================================
+ * getitem2 <item id>,<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>};
+ * getitem2 "<item name>",<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>{,<account ID>};
  *
+ * getitembound2 <item id>,<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>,<bound type>{,<account ID>};
+ * getitembound2 "<item name>",<amount>,<identify>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>,<bound type>{,<account ID>};
+ * Type:
+ *	0 - No bound
+ *	1 - Account Bound
+ *	2 - Guild Bound
+ *	3 - Party Bound
+ *	4 - Character Bound
  *------------------------------------------*/
 BUILDIN_FUNC(getitem2)
 {
@@ -6356,17 +6367,16 @@ BUILDIN_FUNC(getitem2)
 
 	if( !strcmp(command,"getitembound2") ) {
 		bound = script_getnum(st,11);
-		if( bound > BOUND_NONE && bound < BOUND_MAX ) {
-			if( script_hasdata(st,12) )
-				sd = map_id2sd(script_getnum(st,12));
-			else
-				sd = script_rid2sd(st); //Attached player
-		} else {
+		if( bound < BOUND_NONE || bound >= BOUND_MAX ) {
 			ShowError("script_getitembound2: Not a correct bound type! Type=%d\n",bound);
 			return 1;
 		}
+		if( script_hasdata(st,12) )
+			sd = map_id2sd(script_getnum(st,12));
+		else
+			sd = script_rid2sd(st); //Attached player
 	} else if( script_hasdata(st,11) )
-		sd = map_id2sd(script_getnum(st,11)); // <Account ID>
+		sd = map_id2sd(script_getnum(st,11)); //<Account ID>
 	else
 		sd = script_rid2sd(st); //Attached player
 
@@ -11278,9 +11288,7 @@ BUILDIN_FUNC(pvpon)
 	return 0;
 }
 
-static int buildin_pvpoff_sub(struct block_list *bl,va_list ap)
-{
-	TBL_PC* sd = (TBL_PC*)bl;
+static int buildin_pvpoff_suC* sd = (TBL_PC*)bl;
 	clif_pvpset(sd, 0, 0, 2);
 	if (sd->pvp_timer != INVALID_TIMER) {
 		delete_timer(sd->pvp_timer, pc_calc_pvprank_timer);
@@ -11306,7 +11314,7 @@ BUILDIN_FUNC(pvpoff)
 	bl.m = m;
 	clif_maptypeproperty2(&bl, ALL_SAMEMAP);
 
-	if(baons if pk_mode is on [Valaris]
+	if(battle_config.pk_mode) // disable ranking options if pk_mode is on [Valaris]
 		return 0;
 	
 	map_foreachinmap(buildin_pvpoff_sub, m, BL_PC);
@@ -12805,7 +12813,6 @@ sc/* Ensure we're standing because the following packet causes the client to vir
 	if( pc_issit(sd) ) {
 		pc_setstand(sd);
 		skill_sit(sd,0);
-		clif_standing(&sd->bl);
 	}=script_getnum(st,3);
 	sd=script_rid2sd(st);
 
@@ -15256,14 +15263,19 @@ BUILDIN_FUNC(npcshopattach)
 			dstscript = &i_data->script;
 			break;
 	}
-	if( *dstscript  &i_data->script;
-		break;
-	}
-	if(*dstscript)
+	if( *dstscript )
 		script_free_code(*dstscript);
 
-	*dstscript = script[0] ? parse_script(script, "script_setitemscript", 0SCRIPT_CMD_SUCCESS 0) : NULL;
-	script_pushint(st,1)=============================
+	*dstscript = script[0] ? parse_script(script, "script_setitemscript", 0, 0) : NULL;
+	script_pushint(st,1tory[i].amoSCRIPT_CMD_SUCCESSnt;
+		}
+	}
+
+	script_pushint(st,j);
+	return 0;
+}
+
+=============
  * Add or Update a mob drop temporarily [Akinari]
  * Original Idea By: [Lupus]
  *
@@ -17767,8 +17779,8 @@ BUILDIN_FUNC(2) )
 		sd = scr1pt_rid2sd(st);
 
 	if( sd == Nskill_sit(sd,1);
-		pc_setsit(sdbl, 1|4);
-		pc_setsit(sd);
+		clif_sitting(&sd->bl);
+		pc_setsit(sd;
 		sk	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -17785,9 +17797,7 @@ BUILDIN_FUNC(2) )
 	if( sd == NULL)
 		return 0;
 
-	if( pc_issi(sd) ) {
-		pc_setstand(sd);
-		skill_sit(sdSCRIPT_CMD_SUCCESS 0);
+	if( pc_issi(sd) kill_sit(sdSCRIPT_CMD_SUCCESS 0);
 		* Creates an array of bounded item IDs
  * countbound {<type>};
  * @param type: 0 - All bound items; 1 - Account Bound; 2 - Guild Bound; 3 - Party Bound
