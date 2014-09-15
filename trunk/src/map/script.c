@@ -7759,25 +7759,28 @@ BUILDIN_FUNC(getequippercentrefinery)
  *------------------------------------------*/
 BUILDIN_FUNC(successrefitem)
 {
-	int i = -1, num, up = 1;
+	short i = -1, up = 1;
+	int pos;
 	TBL_PC *sd;
 
-	num = script_getnum(st,2);
+	pos = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
 	if(script_hasdata(st,3))
 		up = script_getnum(st,3);
-	if(num > 0 && num <= ARRAYLENGTH(equip))
-		i = pc_checkequip(sd,equip[num - 1]);
+	if(pos > 0 && pos <= ARRAYLENGTH(equip))
+		i = pc_checkequip(sd,equip[pos - 1]);
 	if(i >= 0) {
 		unsigned int ep = sd->status.inventory[i].equip;
 
 		//Logs items, got from (N)PC scripts [Lupus]
 		log_pick_pc(sd,LOG_TYPE_SCRIPT,-1,&sd->status.inventory[i]);
 
-		if(sd->status.inventory[i].refine >= MAX_REFINE)
+		if(sd->status.inventory[i].refine >= MAX_REFINE) {
+			script_pushint(st,MAX_REFINE);
 			return 0;
+		}
 
 		sd->status.inventory[i].refine += up;
 		sd->status.inventory[i].refine = cap_value(sd->status.inventory[i].refine,0,MAX_REFINE);
@@ -7808,9 +7811,13 @@ BUILDIN_FUNC(successrefitem)
 					break;
 	 	 	 }
 		}
+		script_pushint(st,sd->status.inventory[i].refine);
+		return 0;
 	}
 
-	return SCRIPT_CMD_SUCCESS;
+	ShowError("buildin_successrefitem: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+	script_pushint(st,-1);
+	return SCRIPT_CMD_FAILURE;
 }
 
 /*==========================================
@@ -7818,25 +7825,29 @@ BUILDIN_FUNC(successrefitem)
  *------------------------------------------*/
 BUILDIN_FUNC(failedrefitem)
 {
-	int i = -1,num;
+	short i = -1;
+	int pos;
 	TBL_PC *sd;
 
-	num = script_getnum(st,2);
+	pos = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
-	if(num > 0 && num <= ARRAYLENGTH(equip))
-		i = pc_checkequip(sd,equip[num - 1]);
+	if(pos > 0 && pos <= ARRAYLENGTH(equip))
+		i = pc_checkequip(sd,equip[pos - 1]);
 	if(i >= 0) {
 		sd->status.inventory[i].refine = 0;
 		pc_unequipitem(sd,i,3); //Recalculate bonus
 		clif_refine(sd->fd,1,i,sd->status.inventory[i].refine); //Notify client of failure
-
 		pc_delitem(sd,i,1,0,2,LOG_TYPE_SCRIPT);
 		clif_misceffect(&sd->bl,2); //Display failure effect
+		script_pushint(st,1);
+		return 0;
 	}
 
-	return SCRIPT_CMD_SUCCESS;
+	ShowError("buildin_failedrefitem: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+	script_pushint(st,0);
+	return SCRIPT_CMD_FAILURE;
 }
 
 /*==========================================
@@ -7846,17 +7857,18 @@ BUILDIN_FUNC(failedrefitem)
  *------------------------------------------*/
 BUILDIN_FUNC(downrefitem)
 {
-	int i = -1, num, down = 1;
+	short i = -1, down = 1;
+	int pos;
 	TBL_PC *sd;
 
-	num = script_getnum(st,2);
+	pos = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
 	if(script_hasdata(st,3))
 		down = script_getnum(st,3);
-	if(num > 0 && num <= ARRAYLENGTH(equip))
-		i = pc_checkequip(sd,equip[num - 1]);
+	if(pos > 0 && pos <= ARRAYLENGTH(equip))
+		i = pc_checkequip(sd,equip[pos - 1]);
 	if(i >= 0) {
 		unsigned int ep = sd->status.inventory[i].equip;
 
@@ -7876,9 +7888,13 @@ BUILDIN_FUNC(downrefitem)
 		clif_additem(sd,i,1,0);
 		pc_equipitem(sd,i,ep);
 		clif_misceffect(&sd->bl,2);
+		script_pushint(st,sd->status.inventory[i].refine);
+		return 0;
 	}
 
-	return SCRIPT_CMD_SUCCESS;
+	ShowError("buildin_downrefitem: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+	script_pushint(st,-1);
+	return SCRIPT_CMD_FAILURE;
 }
 
 /*==========================================
@@ -7886,55 +7902,68 @@ BUILDIN_FUNC(downrefitem)
  *------------------------------------------*/
 BUILDIN_FUNC(delequip)
 {
-	int i = -1, num, ret = 0;
+	short i = -1;
+	int pos;
+	int8 ret;
 	TBL_PC *sd;
 
-	num = script_getnum(st,2);
+	pos = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
 
-	if(num > 0 && num <= ARRAYLENGTH(equip))
-		i = pc_checkequip(sd,equip[num - 1]);
+	if(pos > 0 && pos <= ARRAYLENGTH(equip))
+		i = pc_checkequip(sd,equip[pos - 1]);
 	if(i >= 0) {
 		pc_unequipitem(sd,i,3); //Recalculate bonus
 		ret = !(pc_delitem(sd,i,1,0,2,LOG_TYPE_SCRIPT));
+	} else {
+		ShowError("buildin_delequip: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+		st->state = END;
+		return 1;
 	}
 
   script_pushint(st,ret);
-  return SCRIPT_CMD_SUCCESS;
+  lse
+			SCRIPT_CMD_SUCCESSlif_emotion(&sd->hd->bl,E_SWT);
+	}
+	return 0;
 }
 
-/*==========================================
- * Break the item equipped at pos.
+/*==Break the item equipped at pos.
  *------------------------------------------*/
 BUILDIN_FUNC(breakequip)
 {
-	int i = -1, num;
+	short i = -1;
+	int pos;
 	TBL_PC *sd;
 
-	num = script_getnum(st,2);
+	pos = script_getnum(st,2);
 	sd = script_rid2sd(st);
 	if(sd == NULL)
 		return 0;
 
-	if(num > 0 && num <= ARRAYLENGTH(equip))
-		i = pc_checkequip(sd,equip[num - 1]);
+	if(pos > 0 && pos <= ARRAYLENGTH(equip))
+		i = pc_checkequip(sd,equip[pos - 1]);
 	if(i >= 0) {
 		sd->status.inventory[i].attribute = 1;
 		pc_unequipitem(sd,i,3);
 		clif_equiplist(sd);
 		script_pushint(st,1);
-	} else
-		script_pushint(st,0);
+		return 0;
+	}
 
-	return SCRIPT_CMD_SUCCESS;
+	ShowError("buildin_breakequip: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+	script_pushint(st,0);
+	return SCRIPT_CMD_FAILURE;
+}
+_point + pc_resetskill(sd,2));
+	return 0;
 }
 
 /*==========================================
  *
- *------------------------------------------*/
-BUILDIN_FUNC(statusup)
+ *--------------statusup)
 {
 	int type;
 	TBL_PC *sd;
@@ -11237,14 +11266,10 @@ BUILDIN_FUNC(setmapflag)
 			case MF_SKILL_DAMAGE: {
 			map[m].skill_damage,0,sizeof(map[m].skill_damage))_DAMAGE: {
 					map[m].flag.skill_damage = 0;
-					memset(&map[m].adjust.damage,0,sizeof(map[m].adju	return SCRIPT_CMD_SUCCESS);
-				}
-				break;
-#endif
+					memset(&map[m].adjust.damage,0,sizeof(map
 		}
 	}
-
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(pvpon)
@@ -11272,15 +11297,20 @@ BUILDIN_FUNC(pvpon)
 	iter = mapit_getallusers();
 	for( sd = (TBL_PC*)mapit_first(iter); mapit_exists(iter); sd = (TBL_PC*)mapit_next(iter) ) {
 		if( sd->bl.m != m || sd->pvp_timer != INVALID_TIMER )
-			continue; // Not appli + able
+			continue; // Not applicable
 
-		sd->pvp_timer = add_timer(gettick()+200,pc_calc_pvprank_timer,sd->bl.id,0);
+		sd->pvp_timer = add_timer(gettick() + 200,pc_calc_pvprank_timer,sd->bl.id,0);
 		sd->pvp_rank = 0;
 		sd->pvp_lastusers = 0;
 		sd->pvp_point = 5;
-		sd->pvp_won = 0	return SCRIPT_CMD_SUCCESSp_lost = 0;
+		sd->pvp_won = 0;
+		sd->pvp_lost = 0;
 	}
-	maildin_pvpoff_sub(struct block_list *bl,va_list ap)
+	mapit_free(iter);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+static int buildin_pvpoff_sub(struct block_list *bl,va_list ap)
 {
 	TBL_PC* sd = (TBL_PC*)bl;
 	clif_pvpset(sd, 0, 0, 2);
@@ -13841,35 +13871,53 @@ BUILDIN_FUNC(day)
 
 //===============Unequip [Spectre]
 //put>. By default will be case sensitive.
-//------------------------------------------------
-BUILDIN_FUNC(unequip)
-{
-	int i;
-	size_t num;
-	TBL_PC *sd;
+//--------------------------------------int pos;
+	TBL_PC *sd = script_rid2sd(st);
 
-	num = scrip (sd != NULL && num >= 1 && num <= ARRAYLENGTH(equip)LL && short i = pc_checkequip(sd,equip[num - 1]);
-p) ) {
-		i = pc_checkequip(sd,equip[num-1]);
-		if (i >=SCRIPT_CMD_SUCCESS0)
-			pc_unequipitem(sd,i,1|unsigned short nameid = 0;
+	if (sd == NULL)
+		return 1;
+
+	pos = script_getnum(st,2);
+	if (pos >= 1 && pos <= ARRAYLENGTH(equip)) {
+		short i = pc_checkequip(sd,equip[pos - 1]);
+
+		if (i >= 0) {
+			pc_unequipitem(sd,i,1|2);
+			script_pushint(st,1);
+			return 0;
+		}
+	}
+
+	ShowError("buildin_unequip: No item equipped at pos %d (CID=%d/AID=%d).\n",pos,sd->status.char_id,sd->status.account_id);
+	script_pushint(st,0);
+	return SCRIPT_CMD_FAILURE;
+}
+
+BUILDIN_FUNC(equip)
+{
+	unsigned short nameid = 0;
 	int	i;
-	TBL_PC *sd;
+	TBL_PC *sd = script_rid2sd(st);
 	struct item_data *item_data;
 
-	sd = script_rid2sd(st);
 	if (sd == NULL)
 		return 1;
 
 	nameid = script_getnum(st,2);
 	if id2sd(st);
 
-	nameid=script_getnum(st,2);
-	if((item_data = itemdb_exists(nameid)) == NULLhu)\n", ShowError("wrong item ID : equipit0, MAX_INVENTORY, i, sd->status.inventory[i].nameid == nameid);
-	if (i < MAX_INVENTORY)
-		pc_equipitem(sd,i,item_data->equip);
+	nameid=script_getnum(st) {
+		ARR_FIND(0,MAX_INVENTORY,i,sd->status.inventory[i].nameid == nameid);
+		if (i < MAX_INVENTORY) {
+			pc_equipitem(sd,i,item_data->equip);
+			script_pushint(st,1);
+			return 0;
+		}
+	}
 
-	return SCRIPT_CMD_SUCCESSequipitem(sd,i,item_data->equip)unsigned short nameid;
+	ShowError("buildin_equip: Item %hu cannot be equipped\n",nameid);
+	script_pushint(st,0);
+	return SCRIPT_CMD_FAILUREequipitem(sd,i,item_data->equip)unsigned short nameid;
 	int0;
 }
 
@@ -15194,11 +15242,11 @@ BUILDIN_FUNC(npcshopdelitem)
 		}
 	}
 
-	RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.shop_item, struct npc_item_list, size);
-	nd->u.shop.coSCRIPT_CMD_SUCCESSnt = size;
+	RECREATE(nd->u.shop.shop_item,struct npc_item_list,size);
+	nd->u.shop.count = size;
 
 	script_pushint(st,1);
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 //Sets a script to attach to a shop npc.
@@ -15208,25 +15256,30 @@ BUILDIN_FUNC(npcshopattach)
 	struct npc_data* nd = npc_name2id(npcname);
 	int flag = 1;
 
-	if( script_hasdata(st,3) )(nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
+	if( script_hasdata(st,3) )
+		flag = script_getnum(st,3);
+
+	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
 	{ //Not Found.
 		script_pushint(st,0);
 		return 0;
 	}
 
-	if( flag ipt_pushint(st,0);
-		return 0;
-	}
-
-	if (flag)
+	if( flag )
 		nd->master_nd = ((struct npc_data *)map_id2bl(st->oid));
 	else
-		nd->masterSCRIPT_CMD_SUCCESS;
-}tk here if needed/once we get rid of RENEWAL
+		nd->master_nd = NULL;
 
-/*==========================================
- * Returns some values of an item [Lupus]
- * Price, Weight, etc..ipt}",[n]);
+	script_pushint(st,1); data ideSCRIPT_CMD_SUCCESStifier %d\n", type);
+			break;
+	}
+
+	return 0;
+}
+
+/*==Returns some values of an item [Lupus]
+ * Price, Weight, etc...
+	setitemscript(itemID,"{new item bonus script}",[n]);
    Where n:
 	0 - script
 	1 - Equip script
@@ -18464,9 +18517,9 @@ BUILDIN_FUNC(preg_match) {
 
 	return SCRIPT_CMD_SUCCESS;
 #else
-	ShowError("script:preg_match: cannot run without PCRE library enabled.\n");
+	ShowDebug("script:preg_match: cannot run without PCRE library enabled.\n");
 	script_pushint(st,0);
-	return SCRIPT_CMD_FAILURE;
+	return SCRIPT_CMD_SUCCESS;
 #endif
 }ivatepset);
 BUILDIN_FUNC(deletepset);
