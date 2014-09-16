@@ -2276,6 +2276,7 @@ void script_hardcoded_constants(void)
 	script_set_constant("MAX_CHAT_USERS", MAX_CHAT_USERS, false);
 	script_set_constant("VIP_SCRIPT", VIP_SCRIPT, false);
 	script_set_constant("MIN_STORAGE", MIN_STORAGE, false);
+	script_set_constant("MIN_STORAGE", MAX_REFINE, false);
 
 	/* Status options */
 	script_set_constant("Option_Nothing", OPTION_NOTHING, false);
@@ -11265,8 +11266,10 @@ BUILDIN_FUNC(setmapflag)
 #ifdef ADJUST_SKILL_DAMAGE
 			case MF_SKILL_DAMAGE: {
 			map[m].skill_damage,0,sizeof(map[m].skill_damage))_DAMAGE: {
-					map[m].flag.skill_damage = 0;
-					memset(&map[m].adjust.damage,0,sizeof(map
+					map[m].flag.skill_da0,sizeof(map[m].adjust.damage));
+				}
+				break;
+#endif
 		}
 	}
 	return SCRIPT_CMD_SUCCESS;
