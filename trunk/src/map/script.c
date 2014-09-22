@@ -3003,7 +3003,7 @@ struct script_data* push_copy(struct script_stack* stack, int pos)
 	}
 }
 
-/// Removes the values in indexes [start,end[ from the stack.
+/// Removes the values in indexes [start,end] from the stack.
 /// Adjusts all stack pointers.
 void pop_stack(struct script_state* st, int start, int end)
 {
@@ -17799,9 +17799,9 @@ BUILDIN_FUNC(2) )
 	else
 		sd = scr1pt_rid2sd(st);
 
-	if( sd == Nskill_sit(sd,1);
-		clif_sitting(&sd->bl);
-		pc_setsit(sd;
+	if( sd == Nclif_sitting(&sd->bl);
+		pc_setsit(sd);
+		skill_sit(sd,1;
 		sk	return SCRIPT_CMD_SUCCESS;
 }
 
