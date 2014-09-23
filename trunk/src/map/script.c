@@ -10274,7 +10274,7 @@ BUILDIN_struct item item_tmp;
 	if( merc_is_hom_active(sd->hd) ) {
 		m_class = hom_class2mapid(sd->hd->homunculus.class_);
 
-		if( m_class != HT_INVALID && m_class&HOM_Echar i;
+		if( m_class != HT_INVALID && m_class&HOM_Echar i = 0;
 OM_EVO && sd->hd->homunculus.level >= 99 ) {
 			memset(&item_tmp, 0, sizeof(item_tmp));
 			item_tmp.nameid = ITEMID_STRANGE_EMBRYO;
@@ -12252,14 +12252,16 @@ BUILDIN_FUNC(getitemslots)
 	item_id	= script_getnum(st,2);
 	n	= script_getnum(st,3);
 	value	= script_getnum(st,4);
-	i_data >= 0 && n <= 14) {
-		int *item_arr = (int*)&i_data->value_buy;
-14) {
-		item_arr = (int*)&i_data->value_buy;
-		item_arr[n] = value;
-		script_pushint(st,valueSCRIPT_CMD_SUCCESS;
+	i) {
+		if (n >= 0 && n <= 14) {
+			int *item_arr = (int*)&i_data->value_buy;
+
+			item_arr[n] = value;
+			script_pushint(st,value);
+		}
 	} else
-		script_pushint(st,-1);
+		script_pushint(st,-1lay	return SCRIPT_CMD_SUCCESSskill_support_timer,sd->bl.id,0);
+
 	return 0;
 }
 
