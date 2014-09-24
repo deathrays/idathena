@@ -12242,8 +12242,8 @@ BUILDIN_FUNC(getitemslots)
 		13 wlv;
 		14 view id
   * Returns Value or -1 if the wrong field's been set
- *------------------------------unsigned short item_id, n;
-	int valueetiteminfo)
+ *------------------------------unsigned short item_id;
+	int n, valueetiteminfo)
 {
 	int item_id,n;
 	int *item_arr;
