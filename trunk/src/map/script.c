@@ -3816,8 +3816,8 @@ void run_script_main(struct script_state *st)
 		//Restore previous script
 		script_detach_state(st, false);
 		//Delay execution
-		sd = map_id2sd(st->rid); // Get sd since script might have attached someone while running. [Inkfish]
-		st->sleep.charid = sd ? sd->status.char_id : 0;
+		sd = map_id2sd(st->rid); //Get sd since script might have attached someone while running. [Inkfish]
+		st->sleep.charid = (sd ? sd->status.char_id : 0);
 		st->sleep.timer = add_timer(gettick() + st->sleep.tick,
 			run_script_timer,st->sleep.charid,(intptr_t)st);
 		linkdb_insert(&sleep_db,(void*)__64BPRTSIZE(st->oid),st);
@@ -11239,7 +11239,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NOEXPPENALTY:		map[m].flag.noexppenalty  = 0; break;
 			case MF_GUILDLOCK:		map[m].flag.guildlock = 0; break;
 			case MF_TOWN:			map[m].flag.town = 0; break;
-			case MF_AUTOTRADE:		map[OWKS:		map[m].flag.allowks = 0; break;
+			case MF_AUTOTRADE:		mapLOWKS:		map[m].flag.allowks = 0; break;
 			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0; break;
 			case MF_PVP_NOCALCRANK:		map[m].flag.pvp_nocalcrank = 0; break;
 			case MF_BATTLEGROUND:		map[m].flag.battleground = 0; break;
