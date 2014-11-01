@@ -308,6 +308,8 @@ const char* parse_syntax(const char* p);
 static int parse_syntax_for_flag = 0;
 
 extern short current_equip_item_index; //For New CARDS Scripts. It contains Inventory Index of the EQUIP_SCRIPT caller item. [Lupus]
+extern unsigned int current_equip_combo_pos;
+
 int potion_flag = 0; //For use on Alchemist improved potions/Potion Pitcher. [Skotlex]
 int potion_hp = 0, potion_per_hp = 0, potion_sp = 0, potion_per_sp = 0;
 int potion_target = 0;
@@ -3903,13 +3905,22 @@ static int db_script_free_code_sub(DBKey key, DBData *data, va_list ap)
 	return 0;
 }
 
-void script_run_autobonus(const char *autobonus, int id, int pos)
+void script_run_autobonus(const char *autobonus, struct map_session_data *sd, unsigned int pos)
 {
 	struct script_code *script = (struct script_code *)strdb_get(autobonus_db, autobonus);
 
 	if( script ) {
-		current_equip_item_index = pos;
-		run_script(script,0,id,0);
+		int j;
+
+		ARR_FIND(0, EQI_MAX, j, sd->equip_index[j] >= 0 && sd->status.inventory[sd->equip_index[j]].equip == pos);
+		if( j < EQI_MAX ) { //Single item autobonus
+			current_equip_item_index = sd->equip_index[j];
+			current_equip_combo_pos = 0;
+		} else { //Combo autobonus
+			current_equip_item_index = -1;
+			current_equip_combo_pos = pos;
+		}
+		run_script(script,0,sd->bl.id,0);
 	}
 }
 
@@ -8093,7 +8104,7 @@ BUILDIN_FUNC(bonus)
 
 BUILDIN_FUNC(autobonus)
 {
-	unsigned int dur;
+	unsigned int dur, pos;
 	short rate;
 	short atk_type = 0;
 	TBL_PC* sd;
@@ -8103,13 +8114,18 @@ BUILDIN_FUNC(autobonus)
 	if( sd == NULL )
 		return 0; // No player attached
 
-	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
+	if( current_equip_combo_pos )
+		pos = current_equip_combo_pos;
+	else
+		pos = sd->status.inventory[current_equip_item_index].equip;
+
+	if( (sd->state.autobonus&pos) == pos )
 		return 0;
 
 	rate = script_getnum(st,3);
 	dur = script_getnum(st,4);
 	bonus_script = script_getstr(st,2);
-	if( !rate || !dur || !bonus_script )
+	if( !rate || !dur || !pos || !bonus_script )
 		return 0;
 
 	if( script_hasdata(st,5) )
@@ -8118,7 +8134,7 @@ BUILDIN_FUNC(autobonus)
 		other_script = script_getstr(st,6);
 
 	if( pc_addautobonus(sd->autobonus,ARRAYLENGTH(sd->autobonus),
-		bonus_script,rate,dur,atk_type,other_script,sd->status.inventory[current_equip_item_index].equip,false) )
+		bonus_script,rate,dur,atk_type,other_script,pos,false) )
 	{
 		script_add_autobonus(bonus_script);
 		if( other_script )
@@ -8130,7 +8146,7 @@ BUILDIN_FUNC(autobonus)
 
 BUILDIN_FUNC(autobonus2)
 {
-	unsigned int dur;
+	unsigned int dur, pos;
 	short rate;
 	short atk_type = 0;
 	TBL_PC* sd;
@@ -8140,13 +8156,18 @@ BUILDIN_FUNC(autobonus2)
 	if( sd == NULL )
 		return 0; // No player attached
 
-	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
+	if( current_equip_combo_pos )
+		pos = current_equip_combo_pos;
+	else
+		pos = sd->status.inventory[current_equip_item_index].equip;
+
+	if( (sd->state.autobonus&pos) == pos )
 		return 0;
 
 	rate = script_getnum(st,3);
 	dur = script_getnum(st,4);
 	bonus_script = script_getstr(st,2);
-	if( !rate || !dur || !bonus_script )
+	if( !rate || !dur || !pos || !bonus_script )
 		return 0;
 
 	if( script_hasdata(st,5) )
@@ -8155,7 +8176,7 @@ BUILDIN_FUNC(autobonus2)
 		other_script = script_getstr(st,6);
 
 	if( pc_addautobonus(sd->autobonus2,ARRAYLENGTH(sd->autobonus2),
-		bonus_script,rate,dur,atk_type,other_script,sd->status.inventory[current_equip_item_index].equip,false) )
+		bonus_script,rate,dur,atk_type,other_script,pos,false) )
 	{
 		script_add_autobonus(bonus_script);
 		if( other_script )
@@ -8167,7 +8188,7 @@ BUILDIN_FUNC(autobonus2)
 
 BUILDIN_FUNC(autobonus3)
 {
-	unsigned int dur;
+	unsigned int dur, pos;
 	short rate,atk_type;
 	TBL_PC* sd;
 	const char *bonus_script, *other_script = NULL;
@@ -8177,7 +8198,12 @@ BUILDIN_FUNC(autobonus3)
 	if( sd == NULL )
 		return 0; // No player attached
 
-	if( sd->state.autobonus&sd->status.inventory[current_equip_item_index].equip )
+	if( current_equip_combo_pos )
+		pos = current_equip_combo_pos;
+	else
+		pos = sd->status.inventory[current_equip_item_index].equip;
+
+	if( (sd->state.autobonus&pos) == pos )
 		return 0;
 
 	rate = script_getnum(st,3);
@@ -8186,14 +8212,14 @@ BUILDIN_FUNC(autobonus3)
 	get_val(st,data); // Convert into value in case of a variable
 	atk_type = (data_isstring(data) ? skill_name2id(script_getstr(st,5)) : script_getnum(st,5));
 	bonus_script = script_getstr(st,2);
-	if( !rate || !dur || !atk_type || !bonus_script )
+	if( !rate || !dur || !pos || !atk_type || !bonus_script )
 		return 0;
 
 	if( script_hasdata(st,6) )
 		other_script = script_getstr(st,6);
 
 	if( pc_addautobonus(sd->autobonus3,ARRAYLENGTH(sd->autobonus3),
-		bonus_script,rate,dur,atk_type,other_script,sd->status.inventory[current_equip_item_index].equip,true) )
+		bonus_script,rate,dur,atk_type,other_script,pos,true) )
 	{
 		script_add_autobonus(bonus_script);
 		if( other_script )
@@ -11228,8 +11254,7 @@ BUILDIN_FUNC(setmapflag)
 					map[m].flag.restricted = 0; == 0){
 					map[m].flag.restricted=0;
 				}
-				break;
-			case MF_NOCOMMAND:		map[m].nocommand = 0; break;
+				brea 0; break;
 			case MF_NODROP:			map[m].flag.nodrop = 0; break;
 			case MF_JEXP:			map[m].adjust.jexp = 0; break;
 			case MF_BEXP:			map[m].adjust.bexp = 0; break;
@@ -11239,7 +11264,8 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NOEXPPENALTY:		map[m].flag.noexppenalty  = 0; break;
 			case MF_GUILDLOCK:		map[m].flag.guildlock = 0; break;
 			case MF_TOWN:			map[m].flag.town = 0; break;
-			case MF_AUTOTRADE:		mapLOWKS:		map[m].flag.allowks = 0; break;
+			case MF_AUTOTRADE:		map[m].flag.autotrade = 0; break;
+			case MF_ALLOWKS:		map[m].flag.allowks = 0; break;
 			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0; break;
 			case MF_PVP_NOCALCRANK:		map[m].flag.pvp_nocalcrank = 0; break;
 			case MF_BATTLEGROUND:		map[m].flag.battleground = 0; break;
@@ -15170,10 +15196,10 @@ BUILDIN_FUNC(npcshopdelitem)
 	amount = (script_lastdata(st) - 2) / 2;
 
 	//Generate new shop item list
-	RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.shop_item, struct npc_item_list, amo += 2 ) ; n < nd->u.shop.count+amount; n++, i+=2 )
-	{
+	RECREATE(nd->u.shop.shop_item,struct npc_item_list,amount);
+	for( n = 0, i = 3; n < amount; n++, i += 2 ) {
 		nd->u.shop.shop_item[n].nameid = script_getnum(st,i);
-		nd->u. + 1);
+		nd->u.shop.shop_item[n].value = script_getnum(st,i + 1);
 	}
 	nd->u.shop.count = n;
 
@@ -15181,14 +15207,11 @@ BUILDIN_FUNC(npcshopdelitem)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(npcshopaddst,1);
-	return 0;
-}
-
-BUILDIN_FUNC(npcshopdelitem)
+BUILDIN_FUNC(npcshopadditem)
 {
 	const char* npcname = script_getstr(st,2);
-	sint n, i;
+	struct npc_data* nd = npc_name2id(npcname);
+	int n, i;
 	int amount;
 
 	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
@@ -18119,15 +18142,18 @@ BUILDIN_FUNC(montransform) {
 	if (script_isstring(st,2))
 		mob_id = mobdb_searchname(script_getstr(st,2));
 	else
-		mob_id = mobdb_checkid(script_getnum(st,2));
-
-	tick = script_getnum(st,3);
+		mob_id = mobdb_checkid(script_g
+	if( script_hasdata(st,4) )
+		type = (sc_type)script_getnum(st,4);
+	else
+		type = SC_NONE;
+st,3);
 	type = (sc_type)script_getnum( mob_id == 0 ) {
 		if( data_isstring(data)  (mob_id == 0) {
 		if (script_isstring(st,2))
 			ShowWarning("buildin_montransform: Attempted to use non-existing monster '%s'.\n", script_getstr(st,2));
 		else
-			ShowWarning("buildin_montransform: Attempted to use non-existing monster of I0 '%d'.\n"( !(type > SC_NONE && type < SC_MAX) ) {
+			ShowWarning("buildin_montransform: Attempted to use non-existing monster of I0 '%d'.\n"( !(type >= SC_NONE && type < SC_MAX) ) {
 		ShowWarning("buildin_montransform: Unsupported status change id %d\n",type);
 		return 0;
 	}
@@ -18149,19 +18175,20 @@ BUILDIN_FUNC(montransform) {
 		struct mob_db *monster =  mob_db(mob_id);
 
 		if( battle_config.mon_trans_disable_in_gvg && map_flag_gvg2(sd->bl.m) ns_disable_in_gvg && map_flag_gvg2(sd->bl.m)) {
-			clif_displaymessage(sd->fd,msg_txt(1493)); //Transforming into monster is not a( sd->disguise d Wars.
+			clif_displaymessage(sd->fd,msg_txt(1493)); //Transforming into monster is ot a( sd->disguise d Wars.
 			return 0;
 		}
 
 		if (sd->disguise) {
-			clif_displaymessage(sd->fd,msg_txt(1491)); //Cannot transform into monster while in disguise.
+			clif_displaymessage(sd->fd,msg_txt(1491)); //Cannot transform into onster while in disguise.
 			return 0;
 		}
 
-		sprintf(msg,msg_txt(1490),monster->name); //Traaaansformation-!! %s form!!
+		sprintf(msg,msg_txt(1490),monster->namShowScriptsformation-!! %s form!!
 		clif_disp&sd->_overhead(&sd->bl,msg);
 		status_change_end(bl,SC_MONSTER_TRANSFORM,INULL,&sd->bl,SC_MONSTER_TRANSFORM,100,mob_id,type,tick);
-		sc_start4(NULL,&sd->bl,type,100,val1,val2,val3,val4,tick);
+		if( script_hasdata(st,4) )
+			sc_start4(NULL,&sd->bl,type,100,val1,val2,val3,val4,tick);
 	}
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -18995,13 +19022,20 @@ isbegin_quest,"ipletequest,"i"),
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
 	BUILDIN_DEF2(getitem2,"getitembound2","v	BUILDIN_DEF(is_clientver,"ii?"),
 	//Monster Transform [malufett]
-	BUILDIN_DEF2(montransform,"transform","vii????"),
+	BUILDIN_DEF2(montransform,"transform","vi?????"),
 	BUILDIN_DEF(bonus_script,"si????"),
 	BUILDIN_DEF(bonus_script_clear,"??"),
 	BUILDIN_DEF(vip_status,"i?"),
-	BUILDIN_DEF(vip_time,"i?"),m	BUILDIN_DEF(getgroupitem,"i"),m	BUILDIN_DEF(enable_command,""),
-	BUILDIN_DEF(disable_command,""),m	BUILDIN_DEF(getguildmember,"i?"),m	BUILDIN_DEF(addspiritball,"ii?"),
+	BUILDIN_DEF(vip_time,"i?"),
+	BUILDIN_DEF(getgroupitem,"i"),
+	BUILDIN_DEF(enable_command,""),
+	BUILDIN_DEF(disable_command,""),
+	BUILDIN_DEF(getguildmember,"i?"),
+	BUILDIN_DEF(addspiritball,"ii?"),
 	BUILDIN_DEF(delspiritball,"i?"),
-	BUILDIN_DEF(countspiritball,"?"),m,"vii????"), //Monster Transform [malufett]
+	BUILDIN_DEF(countspiritball,"?"),
 
-#include "../cu
+#include "../custom/script_def.inc"
+
+	{NULL,NULL,NULL},
+};
