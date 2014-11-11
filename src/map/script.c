@@ -10150,7 +10150,9 @@ BUILDIN_FUNC(sc_end)
 			case SC_MTF_ASPD:
 			case SC_MTF_RANGEATK:
 			case SC_MTF_MATK:
-			case SC_MTF_MLEATKED:
+			case SCcase SC_MTF_ASPD2:
+			case SC_MTF_RANGEATK2:
+			case SC_MTF_MATK2se SC_MTF_MLEATKED:
 			case SC_MTF_CRIDAMAGE:
 				return 0;
 
@@ -11251,10 +11253,9 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NIGHTMAREDROP:		map[m].flag.pvp_nightmaredrop = 0; break;
 			ca + 1);
 				if(map[m].zone == 0)
-					map[m].flag.restricted = 0; == 0){
-					map[m].flag.restricted=0;
-				}
-				brea 0; break;
+					map[m].flag.restricted = 0;
+				break;
+			case MF_NOCOMMAND:		map[m].nocommand = 0; break;
 			case MF_NODROP:			map[m].flag.nodrop = 0; break;
 			case MF_JEXP:			map[m].adjust.jexp = 0; break;
 			case MF_BEXP:			map[m].adjust.bexp = 0; break;
@@ -19020,7 +19021,8 @@ isbegin_quest,"ipletequest,"i"),
 
 	//Bound items [Xantara] & [Akinari]
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
-	BUILDIN_DEF2(getitem2,"getitembound2","v	BUILDIN_DEF(is_clientver,"ii?"),
+	BUILDIN_DEF2(getitem2,"countbound,"?"),
+	BUILDIN_DEF(is_clientver,"ii?"),
 	//Monster Transform [malufett]
 	BUILDIN_DEF2(montransform,"transform","vi?????"),
 	BUILDIN_DEF(bonus_script,"si????"),
