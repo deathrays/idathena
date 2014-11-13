@@ -8913,10 +8913,10 @@ BUILDIN_FUNC(itemskill)
 		return 0;
 
 	data = script_getdata(st,2);
-	get_val(st,data); // Convert into value in case of a variable
+	get_val(st,data); //Convert into value in case of a variable
 	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	lv = script_getnum(st,3);
-	/* Temporarily disabled, awaiting for confirmation */
+	//Temporarily disabled, awaiting for confirmation
 #if 0
 	if( !script_hasdata(st,4) )
 		if( !skill_check_condition_castbegin(sd,id,lv) || !skill_check_condition_castend(sd,id,lv) )
@@ -17860,9 +17860,9 @@ BUILDIN_FUNC(2) )
 	else
 		sd = scr1pt_rid2sd(st);
 
-	if( sd == Nclif_sitting(&sd->bl);
-		pc_setsit(sd);
-		skill_sit(sd,1;
+	if( sd == Npc_setsit(sd);
+		skill_sit(sd,1);
+		clif_sitting(&sd->bl;
 		sk	return SCRIPT_CMD_SUCCESS;
 }
 
