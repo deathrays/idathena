@@ -18358,7 +18358,7 @@ BUILDIN_FUNC(vip_time) {
 		return 0;
 	}
 
-	chrif_req_login_operation(sd->status.account_id,sd->status.name,6,viptime,7,0);
+	chrif_req_login_operation(sd->status.account_id,sd->status.name,CHRIF_OP_LOGIN_VIP,viptime,7,0);
 #endif
 	return SCRIPT_CMD_SUCCESS,100,/** Allows player to use atcommand while talking with NPC
  * enable_command;
@@ -19010,7 +19010,8 @@ isbegin_quest,"ipletequest,"i"),
 
 	//Bound items [Xantara] & [Akinari]
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
-	BUILDIN_DEF2(getitem2,(countbound,"?"),
+	BUILD?"),
+	BUILDIN_DEF(countbound,"?"),
 	BUILDIN_DEF(is_clientver,"ii?"),
 	//Monster Transform [malufett]
 	BUILDIN_DEF2(montransform,"transform","vi?????"),
