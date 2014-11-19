@@ -9832,38 +9832,7 @@ BUILDIN_FUNC(getusers)
 }
 
 /*==========================================
- * Works like @WHO - displays all online users names in window
- *------------------------------------------*/
-BUILDIN_FUNC(getusersname)
-{
-	TBL_PC *sd, *pl_sd;
-	int /*disp_num = 1,*/ group_level = 0;
-	struct s_mapiterator* iter;
-
-	sd = script_rid2sd(st);
-	if (!sd)
-		return 0;
-
-	group_level = pc_get_group_level(sd);
-	iter = mapit_getallusers();
-	for (pl_sd = (TBL_PC*)mapit_first(iter); mapit_exists(iter); pl_sd = (TBL_PC*)mapit_next(iter)) {
-		if (pc_has_permission(pl_sd, PC_PERM_HIDE_SESSION) && pc_get_group_level(pl_sd) > group_level)
-			continue; // Skip hidden sessions
-
-		/* Temporary fix for bugreport:1023.
-		 * Do not uncomment unless you want thousands of 'next' buttons.
-		if ((disp_num++)%10 == 0)
-			clif_scriptnext(sd,st->oid);*/
-		clif_scriptmes(sd,st->oid,pl_sd->status.name);
-	}
-
-	mapit_free(iter;
-	sd=scripSCRIPT_CMD_SUCCESS_rid2sd(st);
-	pc_resetskill(sd,1);
-	return 0;
-}
-
-/*==getmapguildusers("mapname",guild ID) Returns the number guild members present on a map [Reddozen]
+ * getmapguildusers("mapname",guild ID) Returns the number guild members present on a map [Reddozen]
  *------------------------------------------*/
 BUILDIN_FUNC(getmapguildusers)
 {
@@ -11256,8 +11225,8 @@ BUILDIN_FUNC(setmapflag)
 			case MF_TOWN:			map[m].flag.town = 0; break;
 			case MF_AUTOTRADE:		map[m].flag.autotrade = 0; break;
 			case MF_ALLOWKS:		map[m].flag.allowks = 0; break;
-			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0; break;
-			case MF_PVP_NOCALCRANK:		map[m].flag.pvp_nocalcrank = 0; break;
+			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0TELEPORT:	map[m].flag.monster_noteleport = 1; break;
+			case MF_PV0; break;
 			case MF_BATTLEGROUND:		map[m].flag.battleground = 0; break;
 			case MF_RESET:			map[m].flag.reset = 0; break;
 			case MF_CHANNELAUTOJOIN:	map[m].flag.chmautojoin = 0 ; break;
@@ -15197,11 +15166,14 @@ BUILDIN_FUNC(npcshopdelitem)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(npcshopadditem)
+BUILDIN_FUNC(npcshopaddst,1);
+	return 0;
+}
+
+BUILDIN_FUNC(npcshopdelitem)
 {
 	const char* npcname = script_getstr(st,2);
-	struct npc_data* nd = npc_name2id(npcname);
-	int n, i;
+	sint n, i;
 	int amount;
 
 	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
@@ -18815,8 +18787,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(deletepse#endif
 	BUILDIN_DEF(preg_match,"ss?"),, // Delete a pattern set [MouseJstr]
 #endif
-	BUILDIN_DEF(dispbottom,"s"), //added from jA [Lupus]
-	BUILDIN_DEF(getusersname,""),
+	BUILDIN_DEF(dispbottom	BUILDIN_DEF(getusersname,""),
 	BUILDIN_DEF(recovery,"i???"),
 	BUILDIN_DEF(getpetinfo,"i"),
 	BUILDIN_DEF(gethominfo,"i"),
