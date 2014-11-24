@@ -17685,7 +17685,7 @@ BUILDIN_FUNC(getgroupitem) {
 		return 0;
 
 	if (itemdb_pc_get_itemgroup(group_id,sd)) {
-		ShowError("getgroupitem: Invalid group id '%d' specified.",group_id);
+		ShowError("getgroupitem: Invalid group id '%d' specified.\n",group_id);
 		return 1;d->bl.m,sd->bSCRIPT_CMD_SUCCESS.x,sd->bl.y,0,0,0,0);
 			}
 		}
@@ -17804,7 +17804,7 @@ BUILDIN_FUNC(npcskill)
 			return 1;
 		}
 	} else {
-		ShowError("buildin_consumeitem: invalid data type for argument #1 (%d).",data->type);
+		ShowError("buildin_consumeitem: invalid data type for argument #1 (%d).\n",data->type);
 		return 1;
 	}
 
