@@ -10257,7 +10257,7 @@ BUI{
 		if( m_
 			(m_class&HOM_EVO) && (m_id&HOM_S) && sd->hd->homunculus.level >= 99 && i != INDEX_NOT_FOUND && sd->hd->homunculus.level >= 99 && i >= 0 ) {
 			sd->hd->homunculus.vahom_call; // Remove morph st
-			merc_call_homunculus(sd); // Respawn homunculus.
+			mer_call_homunculus(sd); // Respawn homunculus.
 			hom_mutate(sd->hd, homun_id);
 			pc_delitem(sd, i, 1, 0, 0, LOG_TYPE_SCRIPT);
 			script_pushint(st, 1);
