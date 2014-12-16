@@ -12957,22 +12957,27 @@ SCRIPT_CMD_SUCCESSclif_class_change(bl,_class,type);
 /*==gmcommand=================================
  * movenpc [MouseJstr]
  *------------------------------------------*/
-BUILDIN_FUNC(atcommand)
-{
-  return atcommand_sub(st,0);
-}
-
-/*==========================================
- * Displays a message for the player only (like system messages like "you got an apple" )
- *------------------------------------------*/
+BUILDIN_FUNC(atco==========================================
+ * Displays a message for the player only (like  dispbottom("<message>"{,<color>})
+ * @param message 
+ * @param color Hex color default (Green)
+ * @author [Lupus]
+ */
 BUILDIN_FUNC(dispbottom)
 {
-	TBL_PC *sd
-	message = script_getstr(st,2);
-	if( sd sage;
-	message = script_getstr(st,2);
-	if(sd)
-		clif_disp_onlyselSCRIPT_CMD_SUCCESS(sd,message,(int)strlen(message));
+	TBL_PC *sd = script_rid2sd(st);
+	int color = 0;
+	const char *message = script_getstr(st,2);
+
+	if( script_hasdata(st,3) )
+		color = script_getnum(st,3);
+	if( sd ) {
+		if( script_hasdata(st,3) )
+			clif_messagecolor2(sd,color,message); //[Napster]
+		else
+			clif_disp_onlyself(sd,message,(int)strlen(message));
+	}		return SCRIPT_CMD_SUCCESSl->bonusrate=script_getnum(st,6);
+
 	return 0;
 }
 
@@ -13307,15 +13312,22 @@ BUILDIN_FUNC(movenpc)
 
 /*==========================================/*==========================================
  * npctalk (sends message to surrounding area)
- *------------------------------------------*/struct npc_data* nd = (struct npc_data *)map_id2bl(st->oid);
+ *----------------------------------------- = script_getstr(st,2);
+	uint8 flag = 0;
+	struct npc_data* nd = (struct npc_data *)map_id2bl(st->oid);
 
-	str = script_getstr(st,2);
+	if( script_hasdata(st,3) )
+		flag = script_getnum(st,3);
+
 	if( nd ) {
 		char name[NAME_LENGTH], message[256];
 
 		safestrncpy(name,nd->name,sizeof(name));
 		strtok(name,"#"); //Discard extra name identifier if present
-		safesnprintf(message,sizeof(message),"%s : %s",name,str);
+		if( !flag )
+			safesnprintf(message,sizeof(message),"%s : %s",name,str);
+		else
+			safesnprintf(message,sizeof(message),"%s",str);
 		clif_disp_overhead(&nd->bl,message);
 	}
 	return SCRIPT_CMD_SUCCESS;
@@ -15164,14 +15176,11 @@ BUILDIN_FUNC(npcshopdelitem)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(npcshopaddst,1);
-	return 0;
-}
-
-BUILDIN_FUNC(npcshopdelitem)
+BUILDIN_FUNC(npcshopadditem)
 {
 	const char* npcname = script_getstr(st,2);
-	sint n, i;
+	struct npc_data* nd = npc_name2id(npcname);
+	int n, i;
 	int amount;
 
 	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
@@ -18776,7 +18785,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(atcommand,"s"), // [MouseJstr]
 	BUILDIN_DEF2(atcommand,"charcommand","s"), // [MouseJstr]
 	BUILDIN_DEF(movenpc,"sii?"), // [MouseJstr]
-	BUILDIN_DEF(message,"ss"), // [MouseJstr]
+	BUILDIN_DEF(message,"?ss"), // [MouseJstr]
 	BUILDIN_DEF(npctalk,"s"), // [Valaris]
 	BUILDIN_DEF(mobcount,"ss"),
 	BUILDIN_DEF(getlook,"i"),
@@ -18804,7 +18813,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(activatepset,"i"), // Activate a pattern set [MouseJstr]
 	BUILDIN_DEF(deactivatepset,"i"), // Deactive a pattern set [MouseJstr]
 	BUILDIN_DEF(deletepse#endif
-	BUILDIN_DEF(preg_match,"ss?"),, // Delete a pattern set [MouseJstr]
+	BUILDIN_DEF(preg_match,"ss?"),, // Delete a pattern set [?MouseJstr]
 #endif
 	BUILDIN_DEF(dispbottom	BUILDIN_DEF(getusersname,""),
 	BUILDIN_DEF(recovery,"i???"),
