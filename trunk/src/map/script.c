@@ -15840,24 +15840,32 @@ BUILDIN_FUNC(unitstop)
 
 /// Makes the unit say the message
 ///
-/// unittalk <unit_id>,"<message>";
+/// unittalk <unit_id>,"<message>"{,<flag>};
 BUILDIN_FUNC(unittalk)
 {
 	int unit_id;
+	uint8 flag = 0;
 	const char* message;
 	struct block_list* bl;
 
 	unit_id = script_getnum(st,2);
 	message = script_getstr(st,3);
 
+	if( script_hasdata(st,4) )
+		flag = script_getnum(st,4);
+
 	bl = map_id2bl(unit_id);
 	if( bl != NULL ) {
-		struct StringBuf sbuf;
+		if( flag )
+			clif_ShowScript(bl,message);
+		else {
+			struct StringBuf sbuf;
 
-		StringBuf_Init(&sbuf);
-		StringBuf_Printf(&sbuf,"%s : %s",status_get_name(bl),message);
-		clif_disp_overhead(bl,StringBuf_Value(&sbuf));
-		StringBuf_Destroy(&sbuf);
+			StringBuf_Init(&sbuf);
+			StringBuf_Printf(&sbuf,"%s : %s",status_get_name(bl),message);
+			clif_disp_overhead(bl,StringBuf_Value(&sbuf));
+			StringBuf_Destroy(&sbuf);
+		}
 	}
 
 	return SCRIPT_CMD_SUCCESS;
@@ -18161,7 +18169,6 @@ st,3);
 		val4 = script_getnum(st,8);
 
 	if( tick != 0 ) {
-		char msg[CHAT_SIZE_MAX];
 		struct mob_db *monster =  mob_db(mob_id);
 
 		if( battle_config.mon_trans_disable_in_gvg && map_flag_gvg2(sd->bl.m) ns_disable_in_gvg && map_flag_gvg2(sd->bl.m)) {
@@ -18170,15 +18177,16 @@ st,3);
 		}
 
 		if (sd->disguise) {
-			clif_displaymessage(sd->fd,msg_txt(1491)); //Cannot transform into onster while in disguise.
-			return 0;
-		}
-
-		sprintf(msg,msg_txt(1490),monster->namShowScriptsformation-!! %s form!!
+			clif_displaymessage(sd->fd,msg_txt(1491)); //Cannot transform into onsorm!!
 		clif_disp&sd->_overhead(&sd->bl,msg);
 		status_change_end(bl,SC_MONSTER_TRANSFORM,INULL,&sd->bl,SC_MONSTER_TRANSFORM,100,mob_id,type,tick);
-		if( type != SC_NONE )
+		if( type != SC_NONE ) {
+			char msg[CHAT_SIZE_MAX];
+
+			sprintf(msg,msg_txt(1490),monster->name); //Traaaansformation-!! %s form!!
+			clif_ShowScript(&sd->bl,msg);
 			sc_start4(NULL,&sd->bl,type,100,val1,val2,val3,val4,tick);
+		}
 	}
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -18887,7 +18895,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(unitkill,"i"),
 	BUILDIN_DEF(unitwarp,"isii"),
 	BUILDIN_DEF(unitattack,"iv?"),
-	BUILDIN_DEF(unitstop,"i"),
+	BUILDIN_?DEF(unitstop,"i"),
 	BUILDIN_DEF(unittalk,"is"),
 	BUILDIN_DEF(unitemote,"ii"),
 	BUILDIN_DEF(unitskilluseid,"ivi?"), //Originally by Qamera [Celest]
