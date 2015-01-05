@@ -13283,8 +13283,10 @@ BUILDIN_FUNC(movenpc)
 	int x,y;
 
 	npc = script_getstr(st,2);
-	x = script_( (nd = npc_name2id(npc)) == NULL )
+	x = script_( (nd = npc_name2id(npc)) == NULL ) {
+		ShowError("script: movenpc: NPC with ID '%s' was not found!\n",npc);
 		return -1;
+	}
 
 	if( script_hasdata(st,5) )
 		nd->ud.dir = script_getnum(st,5)%8;
@@ -19016,8 +19018,7 @@ isbegin_quest,"ipletequest,"i"),
 	BUILDIN_DEF(party_destroy,"i"),
 
 	//Bound items [Xantara] & [Akinari]
-	BUILDIN_DEF2(getitem,"getitembound","vii?"),
-	BUILD?"),
+	BUILDIN_N_DEF2(getitem2,"getitembound2","viiiiiiiii?"),
 	BUILDIN_DEF(countbound,"?"),
 	BUILDIN_DEF(is_clientver,"ii?"),
 	//Monster Transform [malufett]
