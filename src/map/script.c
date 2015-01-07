@@ -10295,12 +10295,11 @@ BUILDIN_struct item item_tmp;
 		if( m_class != HT_INVALID && m_class&HOM_Echar i = 0;
 OM_EVO && sd->hd->homunculus.level >= 99 ) {
 			memset(&item_tmp, 0, sizeof(item_tmp));
-			item_tmp.nameid = ITEMID_STRANGE_EMBRYO;
-			item_tmp.identify = 1;
+			item_tmp.nameid = ITEMID_STRANGentify = 1;
 
 			if( item_tmp.nameid == 0 || (i = pc_additem(sd, &item_tmp, 1, LOG_TYPE_SCRIPT)) ) {
 				clif_additem(sd, 0, 0, i);
-				clif_emotion(&sd->bl, E_SWT); // Fail oid item drop exploit.
+				clif_emotion(&sd->bl E_SWT); // Fail oid item drop exploit.
 			} else {
 				merc_hom_vaporize(sd, HOM_ST_MORPH);
 				script_pushint(st, 1);
