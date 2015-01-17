@@ -12325,13 +12325,10 @@ BUILDIN_FUNC(getitemslots)
 /*==========================================
  * petskillbonus [Valaris] //Rewritten by [Skotlex]
  *------------------------------------------*/
-BUILDIN_FUNC(petskillbonus)
-{
-	struct pet_data *pd;
-
-	TBL_PC *sd = script_rid2sd(st);
+BUILDIN_	TBL_PC *sd = script_rid2sd(st);
 
 	if (sd == NULL || sd->pd == NULL)
+		return 1if (sd == NULL || sd->pd == NULL)
 		return 0;
 
 	pd = sd->pd;
@@ -12629,13 +12626,14 @@ BUILDIN_FUNC(soundeffectall)
 	name = script_getstr(st,2);
 	type = script_getnum(st,3);
 
-	// FIXME: E);
+	//FIXME: E);
 	type = script_getnum(st,3);
 
 	//FIXME: enumerating map squares (map_foreach) is slower than enumerating the list of 	if( !script_hasdata(st,4) ) // Area around
 		clif_soundeffectall(bl,name,type,AREA);
 	else if( !script_hasdata(st,5) ) { // Entire map
 		const char* map = script_getstr(st,4);
+
 		map_foreachinmap(soundeffect_sub,map_mapname2mapid(map),BL_PC,name,type);
 	} else if( script_hasdata(st,8) ) { // S;
 	}
@@ -12645,7 +12643,7 @@ BUILDIN_FUNC(soundeffectall)
 		const char* map = script_getstr(st,4);
 		int x0 = script_getnum(st,5);
 		int y0 = script_getnum(st,6);
-		int x1 = script_getnum(st,7);
+		int x1 = script_geetnum(st,7);
 		int y1 = script_getnummap_mapname2mapid(map),x0,y0,x1,y1,BL_PC,name,type);
 	} else y0, x1, y1, BL_PC, name, type);
 	}
@@ -12660,20 +12658,24 @@ BUILDIN_FUNC(soundeffectall)
  * pet status recovery [Valaris] / Rewritten by [Skotlex]
  *------------------------------------------*/
 BUILDIN_FUNC(petr = script_rid2sd(st);
+	int sc;
 
 	if( sd == NULL || sd->pd == NULL )
-		return 0;
+		return 1;
+
+	sc = script_getnum(st,2);
+	if( sc <= SC_NONE || sc >= SC_MAX ) {
+		ShowError("buildin_petrecovery: Invalid SC type: %d\n", sc);
+		return 1;
+	}
 
 	pd = sd->pd;
-	
 	if( pd->recovery ) { //Halt previous bonus
 		if( pd->recovery->timer != INVALID_TIMER )
 			delete_timer(pd->recovery->timer,pet_recovery_timer);
 	} else //Init
 		pd->recovery = (struct pet_recovery *)aMalloc(sizeof(struct pet_recovery));
-y *)aMalloc(sizeof(struct pet_recovery));
-		
-	pd->recovery->type = (sc_type)script_getnum(st,2);
+y *)aMalloc(sizeof(struct pet_recoecovery->type = (sc_type)script_getnum(st,2);
 	pd->recovery->delay = script_getnum(s	return SCRIPT_CMD_SUCCESS>recovery->timer = INVALID_TIMER;
 
 	return 0;
@@ -12721,18 +12723,25 @@ BUILDIN_FUNC( = script_rid2sd(st);
 /// petskillattack "<skill name>",<level>,<rate>,<bonusrate>
 BUILDIN_FUstruct script_data *data;
 	TBL_PC *sd = script_rid2sd(st);
+	int id = 0;
 
 	if( sd == NULL || sd->pd == NULL )
-		return 0;
+		return 1;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : skill_get_index(script_getnum(st,2)));
+	if( !id ) {
+		ShowError("buildin_petskillattack: Invalid skill defined!\n");
+		return 1;
+	}
 
 	pd = sd->pd;
 	if( pd->a_skill == NULL )
 		pd->a_skill = (struct pet_skill_attack *)aMalloc(sizeof(struct pet_skill_attack));
-
-	data = script_getdata(st,2);
-	get_val(st,data); //Convert into value in case of a variable
-	pd->a_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
-	pd->a_skill->lv = script_getnum(st,3);
+	pd->a_skill->id = id;
+	pd->a_skill->damage = 0;
+	pd->a_skill->lv = (unsigned short)min(script_getnum(st,3), skill_get_max(pd->a_skill->id));
 	pd->a_skill->div_ = 0;
 	pd->a_skill->rate = script_getnum(st,4);
 	pd->a_skill->bonusrate = script_getnum(st,5);
@@ -12741,23 +12750,30 @@ BUILDIN_FUstruct script_data *data;
 
 /*==========================================/*==========================================
  * pet attack skills [Valaris]
- *------------------------------------------*/
-/// petskillattack2 <skill id>,<level>,<div>,<rate>,<bonusrate>
+ *---------------------------------damage>,<div>,<rate>,<bonusrate>
+/// petskillattack2 "<skill name>",<damagee>
 /// petskillattack2 "<skill name>",<level>,<div>,<rate>,<bonusrate>
 BUILDIN_FUNstruct script_data *data;
 	TBL_PC *sd = script_rid2sd(st);
+	int id = 0;
 
 	if( sd == NULL || sd->pd == NULL )
-		return 0;
+		return 1;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : skill_get_index(script_getnum(st,2)));
+	if( !id ) {
+		ShowError("buildin_petskillattack2: Invalid skill defined!\n");
+		return 1;
+	}
 
 	pd = sd->pd;
 	if( pd->a_skill == NULL )
 		pd->a_skill = (struct pet_skill_attack *)aMalloc(sizeof(struct pet_skill_attack));
-
-	data = script_getdata(st,2);
-	get_val(st,data); //Convert into value in case of a variable
-	pd->a_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
-	pd->a_skill->lv = ) : script_getnum(st,2) );
+	pd->a_skill->id = id;
+	pd->a_skill->damage = script_getnum(st,3); //Fixed damage
+	pd->a_skill->lv = (unsigned short)skill_get_max(pd->a_skill->id); //Adjust to max skill level,2) );
 	pd->a_skill->lv=script_getnum(st,3);
 	pd->a_skill->di = script_getnum(st,5);
 	pd->a_skill->bonusrate = cript_getnum(st,5);
@@ -12773,23 +12789,30 @@ BUILDIN_FUNstruct script_data *data;
 /// petskillsupport "<skill name>",<level>,<delay>,<hp>,<sp>
 BUILDIN_FUNstruct script_data *data;
 	TBL_PC *sd = script_rid2sd(st);
+	int id = 0;
 
 	if( sd == NULL || sd->pd == NULL )
-		return 0;
+		return 1;
+
+	data = script_getdata(st,2);
+	get_val(st,data); //Convert into value in case of a variable
+	id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : skill_get_index(script_getnum(st,2)));
+	if( !id ) {
+		ShowError("buildin_petskillsupport: Invalid skill defined!\n");
+		return 1;
+	}
 
 	pd = sd->pd;
 	if( pd->s_skill ) { //Clear previous skill
 		if( pd->s_skill->timer != INVALID_TIMER ) {
-			if( pd->s_skill->id r != INVALID_TIMER) {
-			if (pd->s_skill->id)
+			if( pd->s_skill->id )
+				delete_timer(pd->s_skill->timer,ll->id)
 				delete_timer(pd->s_skill->timer, pet_skill_support_timer);
 			else
 				delete_timer(pd->s_sInit memory
 		pd->s_skill = (struct pet_skill_support *)aMalloc(sizeof(struct pet_skill_support));
 
-	data = script_getdata(st,2);
-	get_val(st,data); //Convert into value in case of a variable
-	pd->s_skill->id = (data_isstring(data) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
+	pd->s_skill->id = id;
 	pd->s_skill->lv = script_getnum(st,3);
 	pd->s_skill->delay = script_getnum(st,4);
 	pd->s_skill->hp = script_getnum(st,5);
@@ -15148,14 +15171,11 @@ BUILDIN_FUNC(callshop)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-BUILDIN_FUNC(npcshopst,1);
-	return 0;
-}
-
-BUILDIN_FUNC(npcshopdelitem)
+BUILDIN_FUNC(npcshopitem)
 {
 	const char* npcname = script_getstr(st,2);
-	sint n, i;
+	struct npc_data* nd = npc_name2id(npcname);
+	int n, i;
 	int amount;
 
 	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
@@ -19002,8 +19022,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(eaclass,"?"), //[Skotlex]
 	BUILDIN_DEF(roclass,"i?"), //[Skotlex]
 	BUILDIN_DEF(checkvending,"?"),
-	BUILDIN_DEF(checkchatting,"?"),
-	BUILDIN_DEF(checkidle,"?"),
+	BUILDkidle,"?"),
 	BUILDIN_DEF(openmail,""),
 	BUILDIN_DEF(openauction,""),
 	BUILDIN_DEF(checkcell,"siii"),
@@ -19023,7 +19042,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(areamobuseskill,"siiiiviiiii"),
 	BUILDIN_DEF(progressbar,"si"),
 	BUILDIN_DEF(pushpc,"ii"),
-	BUILDIN_DEF(buyi),
+	BUILDIN_DEF(buyingstore,"i"),
+	BUILDIN_DEF(searchstores,"ii"),
 	BUILDIN_DEF(showdigit,"i?"),
 	//WoE SE
 	BUILDIN_DEF(agitstart2,""),
