@@ -10224,7 +10224,7 @@ BUILDIN_FUNC(homunculus_evolution)
 	TBL_PC *sd;
 
 	sd = script_rid2hom_is_active(sd->hd) ) {
-		if( sd->hd->homunculus.intimacy > 91000 )
+		if( sd->hd->homunculus.intimacy >= battle_config.homunculus_evo_intimacy_need )
 			->hd->homunculus.intimacy > 91000 )
 			merc_hom_evolution(sd->hd);
 		else
@@ -11221,7 +11221,7 @@ BUILDIN_FUNC(setmapflag)
 			case MF_AUTOTRADE:		map[m].flag.autotrade = 0; break;
 			case MF_ALLOWKS:		map[m].flag.allowks = 0; break;
 			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0TELEPORT:	map[m].flag.monster_noteleport = 1; break;
-			case MF_PV0; break;
+			case Mk = 0; break;
 			case MF_BATTLEGROUND:		map[m].flag.battleground = 0; break;
 			case MF_RESET:			map[m].flag.reset = 0; break;
 			case MF_CHANNELAUTOJOIN:	map[m].flag.chmautojoin = 0 ; break;
@@ -15163,7 +15163,7 @@ BUILDIN_FUNC(callshop)
 		switch( flag ) {
 			case 1: npc_buysellsel(sd,nd->bl.id,0); break; //Buy window
 			case 2: npc_buysellsel(sd,nd->bl.id,1); break; //Sell window
-			default: clif_npcbuysell(sd,nd->bl.id); break; //Shnd);
+			default: clif_npcbuysell(sd,nd->bl.id); break; //d,nd);
 
 	sd->npc_shopid = nd->bl.id;
 	script_pushint(st,1);
