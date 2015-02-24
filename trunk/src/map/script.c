@@ -18895,16 +18895,16 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(checkoption1,"i"),
 	BUILDIN_DEF(checkoption2,"i"),
 	BUILDIN_DEF(guildgetexp,"i"),
-	BUILDIN_DEF(guildchangegm,"is"),
-	BUILDIN_DEF(logmes,"s"), //this command actls as MES but rints info into LOG file either SQL/TXT [Lupus]
-	BUILDIN_DEF(summon,"si??"), // summons a slave monster [Celest]
-	BUILDIN_DEF(isnight,""), // check whether it is night time [Celest]
-	BUILDIN_DEF(isday,""), // check whether it is day time [Celest]
-	BUILDIN_DEF(isequipped,"i*"), // check whether another item/card has been equipped [Celest]
-	BUILDIN_DEF(isequippedcnt,"i*"), // check how many items/cards are being equipped [Celest]
-	BUILDIN_DEF(cardscnt,"i*"), // check how many items/cards are being equipped in the same arm [Lupus]
-	BUILDIN_DEF(getrefine,""), // returns the refined number of the current item, or an item with index specified [celest]
-	BUILDIN_DEF(night,""), // sets the server to night time
+	BUILDIN_DEF(guild Thangegm,"is"),
+	BUILDIN_DEF(logmes,"s"), //this command actls as MES but rints info into LOG file either SQL/Summons a slave monster [Celest]
+	BUILDIN_DEF(isnight,""), // Check whether it is night time [Celest]
+	BUILDIN_DEF(isday,""), // Check whether it is day time [Celest]
+	BUILDIN_DEF(isequipped,"i*"), // Check whether another item/card has been equipped [Celest]
+	BUILDIN_DEF(isequippedcnt,"i*"), // Clest]
+	BUILDIN_DEF(isequippedcnt,"i*"), // check how many items/cards are being equippCheck how many items/cards are being equipped in the same arm [Lupus]
+	BUILDIN_DEF(getrefine,""), // Rarm [Lupus]
+	BUILDIN_DEF(getrefine,""), // returns the refined number of the current item, or an item with index spSets the server to night time
+	BUILDIN_DEF(day,""), // Sver to night time
 	BUILDIN_DEF(day,""), // sets the server to day time
 #ifdef PCRE_SUPPORT
 	BUILDIN_DEF(defpattern,"iss"), // Define pattern to listen for [MouseJstr]
