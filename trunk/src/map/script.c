@@ -244,9 +244,9 @@ static int buildin_getelementofarray_ref = 0;
 static DBMap* autobonus_db = NULL; // char* script -> char* bytecode
 
 struct Script_Config script_config = {
-	1, // warn_func_mismatch_argtypes
+	1, //warn_func_mismatch_argtypes
 	1, 65535, 2048, //warn_func_mismatch_paramnum/check_cmdcount/check_gotocount
-	0, INT_MAX, // input_min_value/input_max_value
+	0, INT_MAX, //input_min_value/input_max_value
 	"OnPCDieEvent", //die_event_name
 	"OnPCKillEvent", //kill_pc_event_name
 	"OnNPCKillEvent", //kill_mob_event_name
@@ -256,8 +256,9 @@ struct Script_Config script_config = {
 	"OnPCBaseLvUpEvent", //baselvup_event_name
 	"OnPCJobLvUpEvent", //joblvup_event_name
 	"OnPCStatCalcEvent", //stat_calc_event_name
-	"OnTouch_",	//ontouch_name (runs on first visible char to enter area, picks another char if the first char leaves)
-	"OnTouch",	//ontouch2_name (run whenever a char walks into the OnTouch area)
+	"OnTouch_", //ontouch_name (runs on first visible char to enter area, picks another char if the first char leaves)
+	"OnTouch", //ontouch2_name (run whenever a char walks into the OnTouch area)
+	"OnUnTouch", //onuntouch_name (run whenever a char walks from the OnTouch area)
 };
 
 static jmp_buf     error_jump;
@@ -326,7 +327,7 @@ typedef struct script_function {
 
 extern script_function buildin_func[];
 
-static struct linkdb_node* sleep_db;// int oid -> struct script_state*
+static struct linkdb_node* sleep_db; //int oid -> struct script_state*
 
 #ifdef BETA_THREAD_TEST
 /**
@@ -5063,7 +5064,7 @@ BUILDIN_FUNC(areawarp)
 
 	if( strcmp(str,"Random") == 0 )
 		index = 0;
-	else if( !(index=mapindex_name2id(str)) )
+	else if( !(index = mapindex_name2id(str)) )
 		return 0;
 
 	map_foreachinarea(buildin_areawarp_sub, m,x0,y0,x1,y1, BL_PC, index,x2,y2,x3,y3);
@@ -9884,17 +9885,59 @@ static int buildin_getareausers_sub(struct block_list *bl,va_list ap)
 
 BUILDIN_FUNC(getareausers)
 {
-	const char *str;
-	int16 m, x0, y0, x1, y1, users = 0; // Doubt we can have more then 32k users on
+	int16 m = -1, x0, y0, x1, y1;
+	int users = 0;
+	int idx = 2;
 
-	str = script_getstr(st,2);
-	x0 = script_getnum(st,3);
-	y0 = script_getnum(st,4);
-	x1 = script_getnum(st,5);
-	y1 = script_getnum(st,6);
-	if ((m = map_mapname2mapid(str)) < 0) {
+	if (script_hasdata(st,2) && script_isstring(st,2)) {
+		const char *str = script_getstr(st,2);
+
+		if ((m = map_mapname2mapid(str)) < 0) {
+			script_pushint(st,-1);
+			return 0;
+		}
+		idx = 3;
+	} else {
+		TBL_PC *sd = script_rid2sd(st);
+
+		if (!sd) {
+			script_pushint(st,-1);
+			return 1;
+		}
+		m = sd->bl.m;
+	}
+
+	if (script_hasdata(st,idx + 3)) {
+		x0 = script_getnum(st,idx + 0);
+		y0 = script_getnum(st,idx + 1);
+		x1 = script_getnum(st,idx + 2);
+		y1 = script_getnum(st,idx + 3);
+	} else if (st->oid) {
+		struct npc_data *nd = map_id2nd(st->oid);
+
+		if (!nd) {
+			script_pushint(st,-1);
+			return 0;
+		}
+		if (script_hasdata(st,idx)) {
+			int range = script_getnum(st,idx);
+
+			x0 = nd->bl.x - range;
+			y0 = nd->bl.y - range;
+			x1 = nd->bl.x + range;
+			y1 = nd->bl.y + range;
+		} else if (nd->u.scr.xs != -1 && nd->u.scr.ys != -1) {
+			x0 = nd->bl.x - nd->u.scr.xs;
+			y0 = nd->bl.y - nd->u.scr.ys;
+			x1 = nd->bl.x + nd->u.scr.xs;
+			y1 = nd->bl.y + nd->u.scr.ys;
+		} else {
+			script_pushint(st,-1);
+			return 0;
+		}
+	} else {
 		script_pushint(st,-1);
-		return 0;
+		return 1;
 	}
 	map_foreachinarea(buildin_getareausers_sub,m,x0,y0,x1,y1,BL_PC,&users);
 	script_pushint(st,users);
@@ -10468,42 +10511,33 @@ B
 
 /*==========================================
  *
- *------------------------------------------*/
-BUILDIN_FUNC(changebase)
-{
-	TBL_PC *sd=NULL;
+ *--------------------------------------- = NULL;
 	int vclass;
 
 	if( script_hasdata(st,3) )
-		sd=map_id2sd(script_getnum(st,3));
+		sd = map_id2sd(script_getnum(st,3));
 	else
-	sd=script_rid2sd(st);
+		sd = script_rid2sd(st);
 
-	if(sd == NULL)
+	if( sd == NULL )
 		return 0;
 
-	vclass = scr t_getnum(st,2);
+	vclass = script_getnum(st,2);
+	if( vclass == JOB_WEDDING r t_getnum(st,2);
 	if(vclass == JOB_WEDDING)
 	{
-		if (!battle_config.wedding_modifydisplay || //Do not show) //Baby classes screw up when showing wedding sprites. [Skotlex] They don't seem to anymore.. [Skotlex] They don't seem to anymore.
-			)
+		if (!battle_config.wedding_modifydisplay || //Do not show) //Baby classes screw up when showing wedding sprites [Skotlex] They don't seem to anymore
 		return 0;
 	}
 
-	if(!sd->disguise && vclass != sd->vd.class_) {
-		status_set_viewdata(&sd->bl, vclass);
-		//Updated client view. Base, Weapon and Cloth Colors.
-		clif_changelook(&sd->bl,LOOK_BASE,sd->vd.class_);
-		clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
-		if (sd->vd.cloth_color)
-			clif_changelook(&sd->bl,LOOK_CLOTHES_COLOR,sd->vd.cloth_colSCRIPT_CMD_SUCCESSr);
-		clif_skillinfoblock(sd);
-	}
+	if( !sd->disguise && vclass != sd->vd.class_ )
+		pc_changelook(sd,LOOK_BASE,vclass); //Updated client view. Base, Weapon and Cloth Colors
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /*==========================================
+ * ========================================
  * Unequip all item and request for a changesex to char-serv
  *------------------------------------------*/
 BUILDIN_FU
@@ -11220,8 +11254,8 @@ BUILDIN_FUNC(setmapflag)
 			case MF_TOWN:			map[m].flag.town = 0; break;
 			case MF_AUTOTRADE:		map[m].flag.autotrade = 0; break;
 			case MF_ALLOWKS:		map[m].flag.allowks = 0; break;
-			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0TELEPORT:	map[m].flag.monster_noteleport = 1; break;
-			case Mk = 0; break;
+			case MF_MONSTER_NOTELEPORT:	map[m].flag.monster_noteleport = 0; break;
+			case MF_PVP_NOCALCRANK:		map[m].flag.pvp_nocalcrank = 0; break;
 			case MF_BATTLEGROUND:		map[m].flag.battleground = 0; break;
 			case MF_RESET:			map[m].flag.reset = 0; break;
 			case MF_CHANNELAUTOJOIN:	map[m].flag.chmautojoin = 0 ; break;
@@ -12407,6 +12441,10 @@ BUILDIN_FUNC(petloot)
 			pc_setreg(sdreference_uid(add_str("@inventorylist_id"), j),sd->status.inventory[i].nameid);
 			pc_setreg(sd,refrence_uid(add_str("@inventorylist_amount"), j),sd->status.inventory[i].amount);
 			pc_setreg(sd,rej),sd->status.inventory[i].equip);
+			if (sd->status.inventory[i].equip)
+				pc_setreg(sd,reference_uid(add_str("@inventorylist_equip"),j),pc_equippoint(sd,i));
+			else
+				pc_setreg(sd,reference_uid(add_str("@inventorylist_equip"),j),0);
 			pc_setreg(sd,reference_uid(add_str("@inventorylist_refine"),rence_uid(add_str("@inventorylist_refine"), j),sd->status.inventory[i].refine);
 			pc_setreg(sd,referj),sd->status.inventory[i].identify);
 			pc_setreg(sd,reference_uid(add_str("@inventorylist_attribute"),ce_uid(add_str("@inventorylist_attribute"), j),sd->status.inventory[i].attribute);
@@ -12415,6 +12453,33 @@ BUILDIN_FUNC(petloot)
 			}
 			pc_setreg(sd,refj),sd->status.inventory[i].expire_time);
 			pc_setreg(sd,reference_uid(add_str("@inventorylist_bound"),erence_uid(add_str("@inventorylist_bound"), j),sd->status.inventory[i].bound);
+			j++;
+		}
+	}
+	pc_setreg(sd,SCRIPT_CMD_SUCCESSdd_str("@inventoryliscar--------------------------*/
+ = script_rid2sd(st);
+	char card_var[NAME_LENGTH];
+	int i, j = 0, k;
+
+	if (!sd)
+		return 0;
+	for (i = 0; i < MAX_CART; i++) {
+		if (sd->status.cart[i].nameid > 0 && sd->status.cart[i].amount > 0) {
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_id"),j),sd->status.cart[i].nameid);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_amount"),j),sd->status.cart[i].amount);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_equip"),j),sd->status.cart[i].equip);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_refine"),j),sd->status.cart[i].refine);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_identify"),j),sd->status.cart[i].identify);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_attribute"),j),sd->status.cartorylist_attribute"), j),sd->status.inventory[i].attribute);
+			for (k = 0;"@cartinventorylist_card%d",k + 1);
+				pc_setreg(sd,reference_uid(add_str(card_var),j),sd->status.cart[i].card[k]);
+			}
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_expire"),j),sd->status.cart[i].expire_time);
+			pc_setreg(sd,reference_uid(add_str("@cartinventorylist_bound"),j),sd->status.cart[i].bound);
+			j++;
+		}
+	}
+	pc_setreg(sd,add_str("@cartnd);
 			j++;
 		}
 	}
@@ -13395,7 +13460,8 @@ BUILDIN_FUNC(npcwalkto)
 		if(!nd->status.hp)
 			status_calc_npc(nd,SCO_FIRST);
 		else
-			status_calc_npc(nd,SC	return SCRIPT_CMD_SUCCESS	unit_wSlktoxy(&nd->bl,x,y,0);
+			status_calc_npc(nd,SC	return SCRIPT_CMD_SUCCESS	uni
+//Slktoxy(&nd->bl,x,y,0);
 	}
 
 	return 0;
@@ -13403,14 +13469,88 @@ BUILDIN_FUNC(npcwalkto)
 // stop an npc's movement [Valaris]
  = (struct npc_data *)map_id2bl(st->oid);
 
-	if( nd truct npc_data *)map_id2bl(st->oid);	return SCRIPT_CMD_SUCCESS		unit_stop_walking(&nd->bl,1|4);
+	if( nd truct npc_data *)map_id2bl(st->oid);	return SCRIPT_CMD_SUCCESS		uni//Set click npc distance [4144]
+BUILDIN_FUNC(setnpcdistance)
+{
+	struct npc_data *nd = (struct npc_data *)map_id2bl(st->oid);
+
+	if( !nd )
+		return 0;
+	nd->area_size = script_getnum(st,2);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+//Return current npc direction [4144]
+BUILDIN_FUNC(getnpcdir)
+{
+	struct npc_data *nd = NULL;
+
+	if( script_hasdata(st,2) )
+		nd = npc_name2id(script_getstr(st,2));
+	if( !nd && !st->oid ) {
+		script_pushint(st,-1);
+		return 0;
+	}
+	if( !nd )
+		nd = (struct npc_data *)map_id2bl(st->oid);
+	if( !nd ) {
+		script_pushint(st,-1);
+		return 0;
+	}
+	script_pushint(st,(int)nd->ud.dir);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+//Set npc direction [4144]
+BUILDIN_FUNC(setnpcdir)
+{
+	int newdir;
+	struct npc_data *nd = NULL;
+
+	if( script_hasdata(st,3) ) {
+		nd = npc_name2id(script_getstr(st,2));
+		newdir = script_getnum(st,3);
+	} else if( script_hasdata(st,2) ) {
+		if( !st->oid )
+			return 1;
+		nd = (struct npc_data *)map_id2bl(st->oid);
+		newdir = script_getnum(st,2);
+	}
+	if( !nd )
+		return 1;
+	if( newdir < 0 )
+		newdir = 0;
+	else if( newdir > 7 )
+		newdir = 7;
+	nd->ud.dir = newdir;
+	clif_clearunit_area(&nd->bl,CLR_OUTSIGHT);
+	clif_spawn(&nd->bl);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+//Return npc class [4144]
+BUILDIN_FUNC(getnpcclass)
+{
+	struct npc_data *nd = NULL;
+
+	if( script_hasdata(st,2) )
+		nd = npc_name2id(script_getstr(st,2));
+	if( !nd && !st->oid ) {
+		script_pushint(st,-1);
+		return 0;
+	}
+	if( !nd )
+		nd = (struct npc_data *)map_id2bl(st->oid);
+	if( !nd ) {
+		script_pushint(st,-1);
+		return 0;
+	}
+	script_pushint(st,(int)nd->class_ay*	return SCRIPT_CMD_SUCCESSskill_bonus_timer, sd->bl.id, 0);
 
 	return 0;
 }
 
-
-/*==========================================
- * getlook char info. getlook(arg)
+/*==getlook char info. getlook(arg)ave point. argument: 0- map name, 1- x, 2- y
  *------------------------------------------*/
 BUILDIN_
 	sd = script_rid2sd(st);
@@ -13951,7 +14091,7 @@ BUILDIN_FUNC(autoequip)
 	flag = script_getnum(st,3);
 
 	if ((item_data = itemdb_exists(nameid)) == NULL) {
-		ShowError("buildin_autoequip: Invalid item '%hu'.\n", nameid);
+		ShowError("buildin_autoequip: Invalid item '%hu'.\n",nameid);
 		return SCRIPT_CMD_FAILURE;
 	}
 
@@ -13959,10 +14099,55 @@ BUILDIN_FUNC(autoequip)
 	}
 
 	if( !itemdb_isequip2(item_data)hu) {
-		ShowError("buildin_autoequip: Item '%dSCRIPT_CMD_FAILURE;
+		ShowError("buildin_utoequip: Item '%dSCRIPT_CMD_FAILURE;
 	}
 
 	item_data->flag.autoequip = (flag > 0 ? 1 : 0);
+	return SCRIPT_CMD_SUCCESSdata-/*=======================================================
+ * Equip2
+ * equip2 <item id>,<refine>,<attribute>,<card1>,<card2>,<card3>,<card4>;or an
+ * item with inventory index specified
+ *---------------------------equip2)
+{
+	int i;
+	unsigned short nameid, ref, attr, c1, c2, c3, c4;
+	struct item_data *item_data = NULL;
+	TBL_PC *sd;
+
+	if( (sd = script_rid2sd(st)) == NULL ) {
+		script_pushint(st,0);
+		return 0;
+	}
+
+	nameid = script_getnum(st,2);
+	if( (item_data = itemdb_exists(nameid)) == NULL ) {
+		ShowError("buildin_equip2: Nonexistant Item '%hu'\n",nameid);
+		script_pushint(st,0);
+		return 1;
+	}
+
+	ref  = script_getnum(st,3);
+	attr = script_getnum(st,4);
+	c1   = (unsigned short)script_getnum(st,5);
+	c2   = (unsigned short)script_getnum(st,6);
+	c3   = (unsigned short)script_getnum(st,7);
+	c4   = (unsigned short)script_getnum(st,8);
+
+	ARR_FIND(0, MAX_INVENTORY, i,(sd->status.inventory[i].equip == 0 &&
+		sd->status.inventory[i].nameid == nameid &&
+		sd->status.inventory[i].refine == ref &&
+		sd->status.inventory[i].attribute == attr &&
+		sd->status.inventory[i].card[0] == c1 &&
+		sd->status.inventory[i].card[1] == c2 &&
+		sd->status.inventory[i].card[2] == c3 &&
+		sd->status.inventory[i].card[3] == c4));
+
+	if( i < MAX_INVENTORY ) {
+		pc_equipitem(sd,i,item_data->equip);
+		script_pushint(st,1);
+	} else
+		script_pushint(st,0);
+
 	return SCRIPT_CMD_SUCCESSdata->flag.autoequip = flag>0?1:0;
 	return 0;
 }
@@ -14970,10 +15155,9 @@ BUILDIN_FUNC(setd)
 	if( is_string_variable(varname) )
 		setd_sub(st,sd,varname,elem,(void *)script_getstr(st,3),NULL);
 	else
-		setd_sub(st,sd,varname,elem,(void *)__64BPRTSIZE(script_getnum(st,3)),NULL);_64BPRTSIZESCRIPT_CMD_SUCCESSscript_getnum(st, 3)), NULL);
-	}
+		setd_sub(st,sd,varname,elem,(void *)__64BPRTSIZE(script_getnum(st,3)),NULL);
 	
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 int buildin_query_sql_sub(struct script_state* st, Sql* handle)
@@ -14982,39 +15166,36 @@ int buildin_query_sql_sub(struct script_state* st, Sql* handle)
 	TBL_PC* sd = NULL;
 	const char* query;
 	struct script_data* data;
-	const char* naMaximum number of rows
+	const char* name;
+	int max_rows = SCRIPT_MAX_ARRAYSIZE; //Maximum number of rows
 	int num_vars;
 	int num_cols;
 
-	//Cof rows
-	int num_vars;
-	int num_cols;
-
-	// check target variables
-	for( i = 3; script_hasdati);
-		if( data_isreference(data) ) { //It, i);
-		if( data_isreference(data) ) { // it's a variable
+	//Check target variables
+	for( i = 3; script_hasdata(st,i); ++i ) {
+		data = script_getdata(st,i);
+		if( data_isreference(data) ) { //It's a variable
 			name = reference_getname(data);
-			if( notRequires a player
+			if( not_server_variable(*name) && sd == NULL ) { //Requires a player
 				sd = script_rid2sd(st);
 				if( sd == NULL ) //No player attached
-					return 1;;
-					st->state = END;
 					return 1;
-				}
 			}
-			if( n //Nrray_variable(*name) )
-				max_rows = 1;// not an array, limit to one row
+			if( not_array_variable(*name) )
+				max_rows = 1; //Not an array, limit to one row
 		} else {
 			ShowError("script:query_sql: not a variable\n");
 			script_reportdata(data);
-			st->state = END;			return 1;
+			st->state = END;
+			return 1;
 		}
 	}
 	num_vars = i - 3;
 
-	// Execute the query
-	query = script_getstr(stquery) ) {
+	//Execute the query
+	query = script_getstr(st,2);
+
+	if( SQL_ERROR == Sql_QueryStr(handle,query) ) {
 		Sql_ShowDebug(handle);
 		script_pushint(st,-1);
 		return 1;
@@ -15026,56 +15207,49 @@ int buildin_query_sql_sub(struct script_state* st, Sql* handle)
 		return 0;
 	}
 
-	//	script_pushint(st, 0);
-		return 0;
-	}
-
-	// Count the number of columns to store
+	//Count the number of columns to store
 	num_cols = Sql_NumColumns(handle);
 	if( num_vars < num_cols ) {
-		ShowWarning("script:query_sql: Too m(unsigned int)(num_cols - ast %u columns.\n", (unsigned int)(num_cols-num_vars));
+		ShowWarning("script:query_sql: Too many columns, discarding last %u columns.\n",(unsigned int)(num_cols - num_vars));
 		script_reportsrc(st);
 	} else if( num_vars > num_cols ) {
-		ShowWarning("script:q(unsigned int)(num_vars - num_cols));
+		ShowWarning("script:query_sql: Too many variables (%u extra).\n",(unsigned int)(num_vars - num_cols));
 		script_reportsrc(st);
 	}
 
-	//num_cols));
-		script_reportsrc(st);
-	}
-
-	// Store data
+	//Store data
 	for( i = 0; i < max_rows && SQL_SUCCESS == Sql_NextRow(handle); ++i ) {
 		for( j = 0; j < num_vars; ++j ) {
 			char* str = NULL;
 
-	j,&str,NULL);
+			if( j < num_cols )
+				Sql_GetData(handle,j,&str,NULL);
 
 			data = script_getdata(st,j + 3);
 			name = reference_getname(data);
 			if( is_string_variable(name) )
 				setd_sub(st,sd,name,i,(void *)(str ? str : ""),reference_getref(data));
 			else
-				setd_sub(st,sd,name,i,(void *)__64BPRTSIZE((str ? atoi(str) : 0)),i, (void *)__64BPRTSIZE((str?atoi(str):0)), reference_getref(data));
+				setd_sub(st,sd,name,i,(void *)__64BPRTSIZE((str ? atoi(str) : 0)),reference_getref(data));
 		}
 	}
 	if( i == max_rows && max_rows < Sql_NumRows(handle) ) {
-		ShowWarning("script:quermax_rows,(unsigned int)Sql_NumRows(handle));
+		ShowWarning("script:query_sql: Only %d/%u rows have been stored.\n",max_rows,(unsigned int)Sql_NumRows(handle));
 		script_reportsrc(st);
 	}
 
 	//Free data
 	Sql_FreeResult(handle);
-	script_pushint(st,Sql_Freturn SCRIPT_CMD_SUCCESSandle);
-	script_pushint(st, i);
-		
-	return 0;
+	script_pushint(st,i);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(query_sql) {
 #ifdef BETA_THREAD_TEST
 	if( st->state != RERUNLINE ) {
-		queryThr //Will continue when the query is finished running
+		queryThread_add(st,false);
+
+		st->state = RERUNLINE; //Will continue when the query is finished running
 	} else
 		st->state = RUN;
 
@@ -15086,28 +15260,26 @@ BUILDIN_FUNC(query_sql) {
 }
 
 BUILDIN_FUNC(query_logsql) {
-	if( !log_config.sql_logs ) { //y_logsql) {
-	if( !log_config.sql_logs ) {// logmysql_handle == NULL
-		ShowWarning("buildin_query_logsql: SQL logs are diabled, query '%s' will not be executed.\n", script_getstr(st,2));
+	if( !log_config.sql_logs ) { //logmysql_handle == NULL
+		ShowWarning("buildin_query_logsql: SQL logs are disabled, query '%s' will not be executed.\n",script_getstr(st,2));
 		script_pushint(st,-1);
 		return 1;
 	}
 #ifdef BETA_THREAD_TEST
-	if( st->state !
+	if( st->state != RERUNLINE ) {
+		queryThread_add(st,true);
+
 		st->state = RERUNLINE; //Will continue when the query is finished running
 	} else
 		st->state = RUN;
-hed running. */
-	} else
-		st->state = RUN;
-	
-	retur 0;
+
+	return 0;
 #else
-	return buildin_query_sql_sub(st, logmysql_handle);
-#ndif
+	return buildin_query_sql_sub(st,logmysql_handle);
+#endif
 }
 
-//Allows escaping of a given string.
+//Allows escaping of a given string
 BUILDIN_FUNC(escape_sql)
 {
 	const char *str;
@@ -15115,55 +15287,61 @@ BUILDIN_FUNC(escape_sql)
 	size_t len;
 
 	str = script_getstr(st,2);
-	len  * 2 + 1);
+	len = strlen(str);
+	esc_str = (char*)aMalloc(len * 2 + 1);
 	Sql_EscapeStringLen(mmysql_handle,esc_str,str,len);
-	script_pushstr(st,le, esc_str, str, SCRIPT_CMD_SUCCESSen);
-	script_pushstr(st, esc_str);
-	return 0;
+	script_pushstr(st,esc_str);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(getd)
 {
 	char varname[100];
-	const char *buf2);
+	const char *buffer;
+	int elem;
+
+	buffer = script_getstr(st,2);
 
 	if(sscanf(buffer,"%99[^[][%d]",varname,&elem) < 2)
 		elem = 0;
 
 	//Push the 'pointer' so it's more flexible [Lance]
-	push_val(st->stack,C_NAME,reference_uid(add_str(varname),ck, C_NAME, referSCRIPT_CMD_SUCCESSnce_uid(add_str(varname), elem));
+	push_val(st->stack,C_NAME,reference_uid(add_str(varname),elem));
 
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(callshop)
 {
 	TBL_PC *sd = NULL;
-	struct npc_data
+	struct npc_data *nd;
+	const char *shopname;
+	int flag = 0;
+
 	sd = script_rid2sd(st);
 	if( sd == NULL )
-		return 1;d ) {
-		script_pushint(st,0);
-	return 0;
-	}
-	shopname = script_getstr(st, 2);
+		return 1;
+	shopname = script_getstr(st,2);
 	if( script_hasdata(st,3) )
 		flag = script_getnum(st,3);
 	nd = npc_name2id(shopname);
-	if( !nd NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINT (nd->subtype != SHOP && nd->subtype != CASHSHOP) ) {
-		ShowError("buildin_callshop: Shop %s] not found (or NPC is not shop type)\n", shopna
-	if( nd->subtype == NPCTYPE_SHOP || nd->subtype == NPCTYPE_ITEMSHOP || nd->subtype == NPCTYPE_POINTst,0);
+	if( !nd || nd->bl.type != BL_NPC || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) ) {
+		ShowError("buildin_callshop: Shop [%s] not found (or NPC is not shop type)\n",shopname);
+		script_pushint(st,0);
 		return 1;
 	}
-	
-	if( nd->subtype == SHOP ) {
+
+	if( nd->subtype == NPCTYPE_SHOP || nd->subtype == NPCTYPE_ITEMSHOP || nd->subtype == NPCTYPE_POINTSHOP ) {
 		//Flag the user as using a valid script call for opening the shop (for floating NPCs)
 		sd->state.callshop = 1;
 
 		switch( flag ) {
 			case 1: npc_buysellsel(sd,nd->bl.id,0); break; //Buy window
 			case 2: npc_buysellsel(sd,nd->bl.id,1); break; //Sell window
-			default: clif_npcbuysell(sd,nd->bl.id); break; //d,nd);
+			default: clif_npcbuysell(sd,nd->bl.id); break; //Show menu
+		}
+	} else
+		clif_cashshop_show(sd,nd);
 
 	sd->npc_shopid = nd->bl.id;
 	script_pushint(st,1);
@@ -17059,9 +17237,9 @@ t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 	int amount, min, max, i, party_id, c = 0;
 	struct party_data *p = NULL;
 
-	amount = scriptAmount of needed Partymembers for the Instance.
-	min = script_hasdata(st,4) ? script_getnum(st,4) : 1; //hasdata(st,4) ? script_getnum(st,4) : 1; // Minimum Level needed to join the Instance.
-	max  = script_hasdatast,5) ? script_getnum(st,5) : MAX_LEVEL; // Maxium Level allowed to join the Instance.
+	amount = scriptAmount of needed Partymembers for the Instance
+	min = script_hasdata(st,4) ? script_getnum(st,4) : 1; //hasdata(st,4) ? script_getnum(st,4) : 1; / Minimum Level needed to join the Instance.
+	max  = script_hasdatast,5) ? script_getnum(st,5) : MAX_LEVEL; / Maxium Level allowed to join the Instance.
 
 	if( min < 1 || min > MAX_LEVEL) {
 		ShowError("sript:check_party: Invalid min level, %d\n", min);
@@ -17071,12 +17249,13 @@ t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 		return 1;
 	}
 
-	if( script_hasdata(st,2) )
+	if( script_hasdata(st,
+		) )
 		party_id = script_getnum(st,2);
 	else return 0;
 
 	if( !(p = party_searc(party_id)) ) {
-		script_pushint(st, 0); // Returns false if party does not exist.
+		script_pushint(st, ); // Returns false if party does not exist.
 		ret {
 		struct map_session_data *pl_sd = p->data[i].sd;
 
@@ -17094,7 +17273,67 @@ t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
 	}
 
 	if( c < amount )
-		script_pushint(st,0); // Not enough Members in the Party to join Instance.
+		script_pushint(st,0); // Not enough Members in the Party to join Instance
+	else
+		script_pushint(st,1);
+t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
+	return 0;
+}
+
+/*==instance_check_guild
+ * Values:
+ * guild_id : Guild ID of the invoking character. [Required Parameter]
+ * amount : Amount of needed Guild Mrameter]
+ * amount : Amount of needed Partymembers for the Instance. [Optional Parameter]
+ * min : Minimum Level needed to join the Instance. [Optional Parameter]
+ * max : Maxium Level allowed to join the Instance. [Optguild (getcharid(2){,amount}{,min}{,max});
+ * Example 2: instance_check_guild (getcharid(2),1,1,99);};
+ * <npc_name> is the full name of an NPC.
+ *-----------------------check_guild)
+{
+	int amount, min, max, i, guild_id, c = 0;
+	struct guild *g = NULL;
+
+	amount = script_hasdata(st,3) ? script_getnum(st,3) : 1;
+	min = script_hasdata(st,4) ? script_getnum(st,4) : 1;
+	max = script_hasdata(st,5) ? script_getnum(st,5) : MAX_LEVEL;
+
+	if( min < 1 || min > MAX_LEVEL ) {
+		ShowError("instance_check_guild: Invalid min level, %d\n",min);
+		return 1;
+	} else if( max < 1 || max > MAX_LEVEL ) {
+		ShowError("instance_check_guild: Invalid max level, %d\n",max);
+		return 1;
+	}
+
+	if( script_hasdata(st,2) )
+		guild_id = script_getnum(st,2);
+	else
+		return 0;
+
+	if( !(g = guild_search(guild_id)) ) {
+		script_pushint(st,0);
+		return 0;
+	}
+
+	for( i = 0; i < MAX_GUILD; i++ ) {
+		struct map_session_data *pl_sd = g->member[i].sd;
+
+		if( pl_sd ) {PARTY;  map_id2bl(pl_sd->bl.id) ) {
+				if( pl_sd->status.base_level < min ) {
+					script_pushint(st,0);
+					return 0;
+				} else if( pl_sd->status.base_level > max ) {
+					script_pushint(st,0);
+					return 0;
+				}
+				c++;
+			}
+		}
+	}
+
+	if( c < amount )
+		script_pushint(st,0);
 	else
 		script_pushint(st,1);
 t_pushintSCRIPT_CMD_SUCCESSst,party_add_member(party_id,sd));
@@ -17921,6 +18160,43 @@ BUILDIN_FUNC(countbound)
 			pc_setrg(sd,reference_uid(add_str("@bound_items"), k),sd->status.inventory[i].nameid);
 			k++;
 			j += sd->status.inventory[i].amoSCRIPT_CMD_SUCCESSnt;
+		}* Checks to see if specified item is in inventory
+ * checkbound(<item_id>{,<bound_type>{,<refine>{,<attribute>{,<card_1>{,<card_2>{,<card_3>{,<card_4>}}}}}}});
+ * @param type: 0 - All bound items; 1 - Account Bound; 2 - Guild Bound; 3 - Party Bound
+ * @return the bound type of item found
+ */
+BUILDIN_FUNC(checkbound) {
+	int i, type = 0, ref, attr, c1, c2, c3, c4;
+	unsigned short nameid = script_getnum(st,2)UNC(countbound)
+{
+	int i, type, j = 0, k = 0;
+	TBL_PC *sd;
+
+	if( (sd =if( !(itemdb_exists(nameid)) ) {
+		ShowError("buildin_checkbound: Nonexistant Item '%hu'\n",nameid);
+		return 0;
+	}
+
+	if( script_hasdata(st,3) )
+		type = script_getnum(st,3);
+
+	if( type <= -1 || type >= BOUND_MAX )
+		ShowError("buildin_checkbound: Not a valid bind type! Type=%d\n",type);
+
+	ARR_FIND(0, MAX_INVENTORY, i, (sd->status.inventory[i].nameid == nameid &&
+		(sd->status.inventory[i].refine == (script_hasdata(st,4) ? (ref = script_getnum(st,4)) : sd->status.inventory[i].refine)) &&
+		(sd->status.inventory[i].attribute == (script_hasdata(st,5) ? (attr = script_getnum(st,5)) : sd->status.inventory[i].attribute)) &&
+		(sd->status.inventory[i].card[0] == (script_hasdata(st,6) ? (c1 = script_getnum(st,6)) : sd->status.inventory[i].card[0])) &&
+		(sd->status.inventory[i].card[1] == (script_hasdata(st,7) ? (c2 = script_getnum(st,7)) : sd->status.inventory[i].card[1])) &&
+		(sd->status.inventory[i].card[2] == (script_hasdata(st,8) ? (c3 = script_getnum(st,8)) : sd->status.inventory[i].card[2])) &&
+		(sd->status.inventory[i].card[3] == (script_hasdata(st,9) ? (c4 = script_getnum(st,9)) : sd->status.inventory[i].card[3])) &&
+		((!type && sd->status.inventory[i].bound > 0) || (type && sd->status.inventory[i].bound == type))));
+
+	if( i < MAX_INVENTORY ) {
+		script_pushint(st,sd->status.inventory[i].bound);
+		return 0;
+	} else
+		script_pushint(st,0tory[i].amoSCRIPT_CMD_SUCCESSnt;
 		}* Creates new party
  * party_create "<party name>"{,<char id>{,<item share>{,<item share type>}}};
  * @param party_name: String of party name that will be created
@@ -18786,7 +19062,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(areaannounce,"siiiisi?????"),
 	BUILDIN_DEF(getusers,"i"),
 	BUILDIN_DEF(getmapguildusers,"si"),
-	BUILDIN_DEF(getmapusers,"s"),
+	BUILDIN_DEF(g*users,"s"),
 	BUILDIN_DEF(getareausers,"siiii"),
 	BUILDIN_DEF(getareadropitem,"siiiiv"),
 	BUILDIN_DEF(enablenpc,"s"),
@@ -18813,8 +19089,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF2(waitingroomkickall,"kickwaitingroomall","?"),
 	BUILDIN_DEF(enablewaitingroomevent,"?"),
 	BUILDIN_DEF(disablewaitingroomevent,"?"),
-	BUILDIN_DEF2(enablewaitingroomevent,"enablearena",""),		// Added by RoVeRT
-	BUILDIN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
+	BUILDIN_DEF2(enablewaitingroomevent,"eN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
 	BUILDIN_DEF(getwaitingroomstate,"i?"),
 	BUILDIN_DEF(warpwaitingpc,"sii?"),
 	BUILDIN_DEF(attachrid,"i"),
@@ -18856,6 +19131,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(makepet,"i"),
 	BUILDIN_DEF(getexp,"ii"),
 	BUILDIN_DEF(getinventorylist,""),
+	BUILDIN_DEF(getcartinventorylist,""),
 	BUILDIN_DEF(getskilllist,""),
 	BUILDIN_DEF(clearitem,""),
 	BUILDIN_DEF(classchange,"ii"),
@@ -18883,37 +19159,41 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(atcommand,"s"), // [MouseJstr]
 	BUILDIN_DEF2(atcommand,"charcommand","s"), // [MouseJstr]
 	BUILDIN_DEF(movenpc,"sii?"), // [MouseJstr]
-	BUILDIN_DEF(message,"?ss"), // [MouseJstr]
-	BUILDIN_DEF(npctalk,"s"), // [Valaris]
+	BUILDIN_DEF(message,"ss"), // [MouseJstr]
+	BUILDIN_DEF(npctalk,"s?"), // [Valaris]
 	BUILDIN_DEF(mobcount,"ss"),
 	BUILDIN_DEF(getlook,"i"),
 	BUILDIN_DEF(getsavepoint,"i"),
 	BUILDIN_DEF(npcspeed,"i"), // [Valaris]
 	BUILDIN_DEF(npcwalkto,"ii"), // [Valaris]
 	BUILDIN_DEF(npcstop,""), // [Valaris]
+	BUILDIN_DEF(setnpcdistance,"i"), // [4144]
+	BUILDIN_DEF(getnpcdir,"?"), // [4144]
+	BUILDIN_DEF(setnpcdir,"*"), // [4144]
+	BUILDIN_DEF(getnpcclass,"?"), // [4144]
 	BUILDIN_DEF(getmapxy,"rrri?"),	//by Lorky [Lupus]
 	BUILDIN_DEF(checkoption1,"i"),
 	BUILDIN_DEF(checkoption2,"i"),
 	BUILDIN_DEF(guildgetexp,"i"),
-	BUILDIN_DEF(guild Thangegm,"is"),
-	BUILDIN_DEF(logmes,"s"), //this command actls as MES but rints info into LOG file either SQL/Summons a slave monster [Celest]
+	BUILDIN_DEF(guildchangegm,"is"),
+	BUILDIN_DEF(logmes,"s"), // This command actls as MES but rints info into LOG file either SQL/TXT [Lupus]
+	BUILDIN_DEF(summon,"si??"), // Summons a slave monster [Celest]
 	BUILDIN_DEF(isnight,""), // Check whether it is night time [Celest]
 	BUILDIN_DEF(isday,""), // Check whether it is day time [Celest]
 	BUILDIN_DEF(isequipped,"i*"), // Check whether another item/card has been equipped [Celest]
-	BUILDIN_DEF(isequippedcnt,"i*"), // Clest]
-	BUILDIN_DEF(isequippedcnt,"i*"), // check how many items/cards are being equippCheck how many items/cards are being equipped in the same arm [Lupus]
-	BUILDIN_DEF(getrefine,""), // Rarm [Lupus]
-	BUILDIN_DEF(getrefine,""), // returns the refined number of the current item, or an item with index spSets the server to night time
-	BUILDIN_DEF(day,""), // Sver to night time
-	BUILDIN_DEF(day,""), // sets the server to day time
+	BUILDIN_DEF(isequippedcnt,"i*"), // Check how many items/cards are being equipped [Celest]
+	BUILDIN_DEF(cardscnt,"i*"), // Check how many items/cards are being equipped in the same arm [Lupus]
+	BUILDIN_DEF(getrefine,""), // Returns the refined number of the current item, or an item with index specified [celest]
+	BUILDIN_DEF(night,""), // Sets the server to night time
+	BUILDIN_DEF(day,""), // Sets the server to day time
 #ifdef PCRE_SUPPORT
 	BUILDIN_DEF(defpattern,"iss"), // Define pattern to listen for [MouseJstr]
 	BUILDIN_DEF(activatepset,"i"), // Activate a pattern set [MouseJstr]
 	BUILDIN_DEF(deactivatepset,"i"), // Deactive a pattern set [MouseJstr]
-	BUILDIN_DEF(deletepse#endif
-	BUILDIN_DEF(preg_match,"ss?"),, // Delete a pattern set [?MouseJstr]
+	BUILDIN_DEF(deletepset,"i"), // Delete a pattern set [MouseJstr]
 #endif
-	BUILDIN_DEF(dispbottom	BUILDIN_DEF(getusersname,""),
+	BUILDIN_DEF(preg_match,"ss?"),
+	BUILDIN_DEF(dispbottom,"s?"), //added from jA [Lupus]
 	BUILDIN_DEF(recovery,"i???"),
 	BUILDIN_DEF(getpetinfo,"i"),
 	BUILDIN_DEF(gethominfo,"i"),
@@ -18941,7 +19221,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(replacestr,"sss??"),
 	BUILDIN_DEF(countstr,"ss?"),
 	BUILDIN_DEF(setnpcdisplay,"sv??"),
-	BUILDIN_DEF(compare,"ss"), //Lordalfa - To bristrcmp,"ss"),dalfa - To bring strstr to scripting Engine.
+	BUILDIN_DEF(compare,"ss"), //Lordalfa - To bring strstr to scripting Engine.
+	BUILDIN_DEF(strcmp,"ss"),
 	BUILDIN_DEF(getiteminfo,"ii"), //[Lupus] returns Items Buy / sell Price, etc info
 	BUILDIN_DEF(setiteminfo,"iii"), //[Lupus] set Items Buy / sell Price, etc info
 	BUILDIN_DEF(getequipcardid,"ii"), //[Lupus] returns CARD ID or other info from CARD slot N of equipped item
@@ -18961,6 +19242,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(npcshopattach,"s?"),
 	BUILDIN_DEF(equip,"i"),
 	BUILDIN_DEF(autoequip,"ii"),
+	BUILDIN_DEF(equip2,"iiiiiii"),
 	BUILDIN_DEF(setbattleflag,"si"),
 	BUILDIN_DEF(getbattleflag,"s"),
 	BUILDIN_DEF(setitemscript,"is?"), //Set NEW item bonus script. Lupus
@@ -18972,8 +19254,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(axtoi,"s"),
 	BUILDIN_DEF(query_sql,"s*"),
 	BUILDIN_DEF(query_logsql,"s*"),
-	BUILDIN_DEBUILDIN_DEF(strtol,"siIN_DEF(escape_sql,"v"),
+	BUILDIN_DEF(escape_sql,"v"),
 	BUILDIN_DEF(atoi,"s"),
+	BUILDIN_DEF(strtol,"si"),
 	// [zBuffer] List of player cont commands --->
 	BUILDIN_DEF(rid2name,"i"),
 	BUILDIN_DEF(pcfollow,"ii"),
@@ -18985,12 +19268,12 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(unitkill,"i"),
 	BUILDIN_DEF(unitwarp,"isii"),
 	BUILDIN_DEF(unitattack,"iv?"),
-	BUILDIN_?DEF(unitstop,"i"),
-	BUILDIN_DEF(unittalk,"is"),
+	BUILDIN_DEF(unitstop,"i"),
+	BUILDIN_DEF(unittalk,"is?"),
 	BUILDIN_DEF(unitemote,"ii"),
 	BUILDIN_DEF(unitskilluseid,"ivi?"), //Originally by Qamera [Celest]
-	BUILD	IN_DEF(unitskillusepos,"iviii"), //[Celest]
-// <--- [zBuffer] List of mob control commands
+	BUILDIN_DEF(unitskillusepos,"iviii"), //[Celest]
+	// <--- [zBuffer] List of mob control commands
 	BUILDIN_DEF(sleep,"i"),
 	BUILDIN_DEF(sleep2,"i"),
 	BUILDIN_DEF(awake,"s"),
@@ -19004,7 +19287,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(eaclass,"?"), //[Skotlex]
 	BUILDIN_DEF(roclass,"i?"), //[Skotlex]
 	BUILDIN_DEF(checkvending,"?"),
-	BUILDkidle,"?"),
+	BUILDIN_DEF(checkchatting,"?"),
+	BUILDIN_DEF(checkidle,"?"),
 	BUILDIN_DEF(openmail,""),
 	BUILDIN_DEF(openauction,""),
 	BUILDIN_DEF(checkcell,"siii"),
@@ -19054,6 +19338,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(instance_warpall,"sii?"),
 	BUILDIN_DEF(instance_announce,"isi?????"),
 	BUILDIN_DEF(instance_check_party,"i???"),
+	BUILDIN_DEF(instance_check_guild,"i???"),
 	//3rd-related
 	BUILDIN_DEF(makerune,"i"),
 	BUILDIN_DEF(checkdragon,""), //[Ind]
@@ -19100,6 +19385,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF2(getitem,"getitembound","vii?"),
 	BUILDIN_DEF2(getitem2,"getitembound2","viiiiiiiii?"),
 	BUILDIN_DEF(countbound,"?"),
+	BUILDIN_DEF(checkbound,"i???????"),
 	BUILDIN_DEF(is_clientver,"ii?"),
 	//Monster Transform [malufett]
 	BUILDIN_DEF2(montransform,"transform","vi?????"),
