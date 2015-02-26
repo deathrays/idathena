@@ -12429,7 +12429,7 @@ BUILDIN_FUNC(petloot)
  * @inventorylist_count = scalar
  *------------------------------------------*/
  = script_rid2sd(st);
-	char card_var[NAME_LENGTH];
+	char card_var[26];
 	int i, j = 0, k;
 
 	if (!sd)
@@ -12458,7 +12458,7 @@ BUILDIN_FUNC(petloot)
 	}
 	pc_setreg(sd,SCRIPT_CMD_SUCCESSdd_str("@inventoryliscar--------------------------*/
  = script_rid2sd(st);
-	char card_var[NAME_LENGTH];
+	char card_var[26];
 	int i, j = 0, k;
 
 	if (!sd)
@@ -14757,8 +14757,7 @@ BUILDIN_FUNC(implode)
 		buf_p = reference_getname(data);
 		if(not_server_variable(*buf_p) && (sd = script_rid2sd(st)) == NULL) {
 			script_pushint(st, -1);
-			if(buf)
-				aFree(buf);
+			aFree(buf);
 			if(ref_str)
 				aFree(ref_str);
 			return 0;
@@ -18044,7 +18043,10 @@ BUILDIN_FUNC(npcskill)
 	skill_level	= script_getnum(st,3);
 	stat_point	= script_getnum(st,4);
 	npc_level	= script_getnum(st,5);
-	sd			= script_rid2sd(st);
+
+	if( !(sd = script_rid2sd(st)) )
+		return 1;
+
 	nd			= (struct npc_data *)map_id2bl(sd->npc_id);
 
 	if( stat_point > battle_config.max_third_parameter at_point > battle_config.max_third_parameter) {
@@ -18057,7 +18059,7 @@ BUILDIN_FUNC(npcskill)
 		return 1;
 	}
 
-	if( sd == NULL || nd == NULL ) //Ain't possible, but I don't trust people.
+	if( nd == NULL ) //Ain't possible, but I don't trust people.
 		return 1;
 
 	nd->level = n( !nd->status.hp )
