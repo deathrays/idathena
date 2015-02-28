@@ -12252,6 +12252,8 @@ BUILDIN_FUNC(getitemslots)
 		8 def;
 		9 range;
 		10 slot;
+		15 eLvmax
+		16 matk (renewal)
 		11 look;
 		12 elv;
 		13 wlv;
@@ -12264,9 +12266,15 @@ BUILDIN_FUNC(getitemslots)
 
 	item_id	= scrii_data = itemdb_exists(item_id);
 
-	if (i_data && n <= 14) {
+	if (i_data && n <= 16) {
 		int *item_arr = (int*)&i_data->value_buy;
-14) {
+
+#ifndef RENEWAL
+		if (n == 16)
+			script_pushint(st,0);
+		else
+#endif
+	4) {
 		item_arr = (int*)&i_data->value_buy;
 		script_pushint(st,item_arr[n]SCRIPT_CMD_SUCCESS;
 	} else
@@ -19085,8 +19093,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(delwaitingroom,"?"),
 	BUILDIN_DEF2(waitingroomkickall,"kickwaitingroomall","?"),
 	BUILDIN_DEF(enablewaitingroomevent,"?"),
-	BUILDIN_DEF(disablewaitingroomevent,"?"),
-	BUILDIN_DEF2(enablewaitingroomevent,"eN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
+	BUILDIN_DEF(disablewaitingroomeent,"enablearena",""),		// Added by RoVeRT
+	BUILDIN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
 	BUILDIN_DEF(getwaitingroomstate,"i?"),
 	BUILDIN_DEF(warpwaitingpc,"sii?"),
 	BUILDIN_DEF(attachrid,"i"),
