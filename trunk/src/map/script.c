@@ -13029,7 +13029,7 @@ int atcommand_sub(*sd, dummy_sd;
 			memcpy(&dummy_sd.bl,bl,sizeof(struct block_list));
 			if( bl->type == BL_NPC )
 				safestrncpy(dummy_sd.status.name,((TBL_NPC*)bl)->name,NAME_LENGTH);
-			sd->mapindex = (bl->m > 0) ? bl->m : mapindex_name2id(MAP_DEFAULT);
+			sd->mapindex = (bl->m > 0) ? bl->m : mapindex_name2id(map_default.mapname);
 		}
 
 		// Init Group ID, Level, & permissions
@@ -19093,7 +19093,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(delwaitingroom,"?"),
 	BUILDIN_DEF2(waitingroomkickall,"kickwaitingroomall","?"),
 	BUILDIN_DEF(enablewaitingroomevent,"?"),
-	BUILDIN_DEF(disablewaitingroomeent,"enablearena",""),		// Added by RoVeRT
+	BUILDIN_DEF(disablewaitngroomevent,"enablearena",""),		// Added by RoVeRT
 	BUILDIN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
 	BUILDIN_DEF(getwaitingroomstate,"i?"),
 	BUILDIN_DEF(warpwaitingpc,"sii?"),
