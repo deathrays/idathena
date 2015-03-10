@@ -10175,16 +10175,14 @@ BUILDIN_FUNC(getscrate)
 		bl = map_id2bl(st->rid);
 
 	if( bl )
-		rate = status_gSCFLAG_NONE);
+		rate = st0,0,0,0,10000,SCFLAG_NONE);
 
-	script_pushint(st,rate;
-	}
-	mapitSCRIPT_CMD_SUCCESSfree(iter);
-	script_pushint(st,1);
-	return 0;
+	script_pushint(st,rate);
+	return SCRIPT_CMD_SUCCESS;
 }
 
 /*==========================================
+ * ========================================
  * getstatus <type>{, <info>};
  *------------------------------------------*/
 BUILDIN_FUNC(getstatus)
@@ -19093,7 +19091,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(delwaitingroom,"?"),
 	BUILDIN_DEF2(waitingroomkickall,"kickwaitingroomall","?"),
 	BUILDIN_DEF(enablewaitingroomevent,"?"),
-	BUILDIN_DEF(disablewaitngroomevent,"enablearena",""),		// Added by RoVeRT
+	BUILDIN_DEF(disblewaitingroomevent,"enablearena",""),		// Added by RoVeRT
 	BUILDIN_DEF2(disablewaitingroomevent,"disablearena",""),	// Added by RoVeRT
 	BUILDIN_DEF(getwaitingroomstate,"i?"),
 	BUILDIN_DEF(warpwaitingpc,"sii?"),
