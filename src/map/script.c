@@ -13780,18 +13780,15 @@ Possible needly check function parameters on C_STR,C_INT,C_INT
 BUILDIN_FUNC(logmes)
 {
 	const char *str;
-	TBL_PC* sd;
+!sdd;
 
 	sd = script_rid2sd(st);
 	if( sd == NULL )
 		return 1;
 
 	str = scrSCRIPT_CMD_SUCCESSpt_getstr(st,2);
-	log_npc(sd,str);
-	return 0;
-}
- = 0;
-	const char *str,*event = "";
+	log_npc(sd,str)class_, lv, timeout = 0;
+	const char *str, *event = "";
 	TBL_PC *sd;
 	struct mob_data *md;
 	int tick = gettick();
@@ -13801,7 +13798,7 @@ BUILDIN_FUNC(logmes)
 		return 0;
 
 	str	= script_getstr(st,2);
-	_class = script_getnum(st,3);
+	class_ = script_getnum(st,3);
 	if( script_hasdata(st,4) )
 		timeout = script_getnum(st,4);
 	if( script_hasdata(st,5) ) {
@@ -13810,7 +13807,9 @@ BUILDIN_FUNC(logmes)
 		check_event(st, event);
 	}
 
-	clif_skill_poseffect(&sd->bl,AM_CALLHOMUN,1,sd->bl.x,sd->blsd->bl.m,sd->bl.x,sd->bl.y,str,_class,event,SZ_SMALL,AI_NONE);
+	clif_skill_poseffect(&sd->blv = sd->status.base_level;
+	class_ = (class_ >= 0 ? class_ : mob_get_random_id(-class_ - 1,(battle_config.random_monster_checklv ? 3 : 1),lv));
+	md = mob_once_spawn_sub(&sd->bl,sd->bl.m,sd->bl.x,sd->bl.y,str,class_,event,SZ_SMALL,AI_NONE);
 	if( md ) {
 		md->master_id = SMALL, AI_NONE);
 	if (md) {
@@ -13820,9 +13819,10 @@ BUILDIN_FUNC(logmes)
 		md->deletetimer = add_timer(tick + (timeout > 0 ? timeout : 60000),mob_timer_delete,md->bl.id,0);
 		mob_spawn,mob_timer_delete,md->bl.id,0);
 		mob_spawn (md); //Now it is ready for spawning.
-		clif_specia&md->bl,SC_MODECHANGE,100,1,0,MD_AGGRESSIVE,0,SC_MODECHAN
-	script_pushint(st,md->bl.id);c	return SCRIPT_CMD_SUCCESSipt_reportsrc(st);
-		return 1;
+		clif_specia&md->bl,SC_MODECHANGE,100,1,0,MD_AGGRESSIVE,0,SC_MODECH	script_pushint(st,md->bl.id);
+	}
+t	return SCRIPT_CMD_SUCCESSelse
+			script_pushint(st,-1);
 	}
 
 	return 0;
@@ -16980,7 +16980,8 @@ BUILDIN_FUNC(mercenary_create)
 
 	contract_time = script_getnum(st,3);
 	mercenary_create(sd, class_, contract_time);
-	script_pushint(st,sd->md->bl.id);
+	if( sd->md )
+		script_pushint(st,sd->md->bl.id);
 
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -18971,14 +18972,15 @@ BUILDIN_FUNC(party_destroy)
   *------------------------------------------*/
 BUILDIN_FUNC(is_clientver) {
 	TBL_PC *sd = NULL;
-	int type = script_getnum(st,2);
-	int da( script_hasdata(st,4) )
+	int type = script3);
+	int ret = 0;
+
+	if( script_hasdata(st,4) )
 		sd = map_charid2sd(script_getnum(st,4));
 	else
 		sd = script_rid2sd(st);
-	if( sdum(st,3);
-
-	if( (bg = bg_tint(st,0);
+	if( sd == NULL ) {
+		script_pushint(st,0);
 		return 0;
 	}
 
