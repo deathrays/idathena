@@ -8005,7 +8005,7 @@ BUILDIN_FUNC(bonus)
 	int val3 = 0;
 	int val4 = 0;
 	int val5 = 0;
-	TBL_PC* sd;
+	TBL_PC *sd;
 	struct script_data *data;
 
 	sd = script_rid2sd(st);
@@ -10049,12 +10049,12 @@ BUILDIN_FUNC(hideonnpc)
  */
 BUILDIN_FUNC(sc_start)
 {
-	TBL_NPC * nd = map_id2nd(st->oid);
-	struct block_list* bl;
+	TBL_NPC *nd = map_id2nd(st->oid);
+	struct block_list *bl;
 	enum sc_type type;
 	int tick, val1, val2, val3, val4 = 0, rate, flag;
 	char start_type;
-	const char* command = script_getfuncname(st);
+	const char *command = script_getfuncname(st);
 
 	if(strstr(command, "4"))
 		start_type = 4;
@@ -12372,6 +12372,8 @@ BUILDIN_FUNC(getitemslots)
  * petskillbonus [Valaris] //Rewritten by [Skotlex]
  *------------------------------------------*/
 BUILDIN_	TBL_PC *sd = script_rid2sd(st);
+	char bonus_type;
+	const char *command = script_getfuncname(st);
 
 	if (sd == NULL || sd->pd == NULL)
 		return 1if (sd == NULL || sd->pd == NULL)
@@ -12382,15 +12384,30 @@ BUILDIN_	TBL_PC *sd = script_rid2sd(st);
 		if (pd->bonus->timer != INVALID_TIMER)
 			delete_timer(pd->bonus->timer, pet_skill_bonus_timer);
 	} else //Init
-		pd->bonus = (struct pet_bonus *) aMalloc(sizeof(struct pet_bonus));
+		pd->bonus = (struct pet_boif(strstr(command, "2"))
+		bonus_type = 2;
+	else
+		bonus_type = 1;
 
 	pd->bonus->type = script_getnum(st,2);
-	pd->bonus->val = script_getnum(st,3);
-	pd->bonus->duration = script_getnum(st,4);
-	pd->bonus->delay = script_getnum(st,5);
+	pd->bonus->val1 = script_getnum(st,3);
+	switch(bonus_type) {
+		case 1:
+			pd->bonus->val2 = 0;
+			pd->bonus->duration = script_getnum(st,4);
+			pd->bonus->delay = script_getnum(st,5);
+			break;
+		case 2:
+			pd->bonus->val2 = script_getnum(st,4);
+			pd->bonus->duration = script_getnum(st,5);
+			pd->bonus->delay = script_getnum(st,6);
+			break;
+	}
 
 	if (pd->state.skillbonus == 1)
-		pd->state.skillbonus = 0; // Waiting state
+		pd->state.skillbonus = 0; //Waiting state
+
+	//state.skillbonus = 0; // Waiting state
 
 	// Wait for timer to start
 	if (battle_config.pet_equip_required && pd->pet.equip == 0)
@@ -15121,18 +15138,15 @@ BUILDIN_FUNC(sqrt)
 	double i, a;
 	i = script_getnum(st,2);
 	a = sSCRIPT_CMD_SUCCESSrt(i);
-	script_pushint(st,(int)a);
-	returnn 0;
-}
-
-BUILDIN_FUNC(pow)
+	scri_FUNC(pow)
 {
 	double i, a, b;
+
 	a = script_getnum(st,2);
 	b = script_getnum(st,3);
-	i = poSCRIPT_CMD_SUCCESS(a,b);
+	i = pow(a,b);
 	script_pushint(st,(int)i);
-	return 0;
+	return SCRIPT_CMD_SUCCESS;
 }
 
 BUILDIN_FUNC(distance)
@@ -15143,7 +15157,8 @@ BUILDIN_FUNC(distance)
 	y0 = script_getnum(st,3);
 	x1 = script_getnum(st,4);
 	y1 = script_getnum(st,5);
-);
+
+	script_pushint(st,distance_xy(x0,y0,x1,y1));
 	return SCRIPT_CMD_SUCCESS;
 }
 // <--- [zBuffer] List of mathematics commands
@@ -18862,11 +18877,7 @@ BUILDIN_FUNC(party_addmember)
 
 	if( !(sd = map_charid2sd(script_getnum(st,3))) ) {
 		script_pushint(st,-1);
-		return 0;
-	}
-
-	if( sd->status.party_id ) {
-		script_pushint(st,-2);
+			script_pushint(st,-2);
 		return 0;
 	}
 
@@ -18880,7 +18891,11 @@ BUILDIN_FUNC(party_addmember)
 		return 0;
 	}
 	sd->party_invite = party_id;
-	script_pushintSCRIPT_CMD_SUCCESSst,part* Removes player from his/her party. If party_id and char_id is empty remove the invoker from his/her party
+	script_pushint(st,party_add_member(party_id,sd));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/** Removes player from his/her party. If party_id and char_id is empty remove the invoker from his/her party
  * party_delmember {<char id>,<party_id>};
  * @param: char_id
  * @param: party_id
@@ -19794,6 +19809,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(guardian,"siisi??"),	// summon guardians
 	BUILDIN_DEF(guardianinfo,"sii"),	// display guardian data [Valaris]
 	BUILDIN_DEF(petskillbonus,"iiii"), // [Valaris]
+	BUILDIN_DEF2(petskillbonus,"petskillbonus2","iiiii"),
 	BUILDIN_DEF(petrecovery,"ii"), // [Valaris]
 	BUILDIN_DEF(petloot,"i"), // [Valaris]
 	BUILDIN_DEF(petheal,"iiii"), // [Valaris]
