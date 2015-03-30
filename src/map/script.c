@@ -15368,7 +15368,8 @@ BUILDIN_FUNC(callshop)
 	if( script_hasdata(st,3) )
 		flag = script_getnum(st,3);
 	nd = npc_name2id(shopname);
-	if( !nd || nd->bl.type != BL_NPC || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) ) {
+	if( !nd || nd->bl.type != BL_NPC || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP &&
+		nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP) ) {
 		ShowError("buildin_callshop: Shop [%s] not found (or NPC is not shop type)\n",shopname);
 		script_pushint(st,0);
 		return 1;
@@ -15383,7 +15384,25 @@ BUILDIN_FUNC(callshop)
 			case 2: npc_buysellsel(sd,nd->bl.id,1); break; //Sell window
 			default: clif_npcbuysell(sd,nd->bl.id); break; //Show menu
 		}
-	} else
+	}
+#if PACKETVER >= 20131223
+	else if( nd->subtype == NPCTYPE_MARKETSHOP ) {
+		unsigned short i;
+
+		for( i = 0; i < nd->u.shop.count; i++ )
+			if( nd->u.shop.shop_item[i].qty )
+				break;
+		if( i == nd->u.shop.count ) {
+			clif_colormes(sd,color_table[COLOR_RED],msg_txt(500));
+			return 0;
+		}
+		sd->npc_shopid = nd->bl.id;
+		clif_npc_market_open(sd,nd);
+		script_pushint(st,1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+#endif
+	else
 		clif_cashshop_show(sd,nd);
 
 	sd->npc_shopid = nd->bl.id;
@@ -15393,25 +15412,40 @@ BUILDIN_FUNC(callshop)
 
 BUILDIN_FUNC(npcshopitem)
 {
-	const char* npcname = script_getstr(st,2);
-	struct npc_data* nd = npc_name2id(npcname);
+	const char *npcname = script_getstr(st,2);
+	struct npc_data *nd = npc_name2id(npcname);
 	int n, i;
 	int amount;
+	uint16 offs = 2;
 
-	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
-	{ //Not found.
+	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP &&
+		nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP) ) { //Not found
 		script_pushint(st,0);
 		return 0;
 	}
 
+#if PACKETVER >= 20131223
+	if( nd->subtype == NPCTYPE_MARKETSHOP ) {
+		offs = 3;
+		npc_market_delfromsql_(nd->exname,0,true);
+	}
+#endif
+
 	//Get the count of new entries
-	amount = (script_lastdata(st) - 2) / 2;
+	amount = (script_lastdata(st) - 2) / offs;
 
 	//Generate new shop item list
 	RECREATE(nd->u.shop.shop_item,struct npc_item_list,amount);
-	for( n = 0, i = 3; n < amount; n++, i += 2 ) {
+	for( n = 0, i = 3; n < amount; n++, i += offs ) {
 		nd->u.shop.shop_item[n].nameid = script_getnum(st,i);
 		nd->u.shop.shop_item[n].value = script_getnum(st,i + 1);
+#if PACKETVER >= 20131223
+		if( nd->subtype == NPCTYPE_MARKETSHOP ) {
+			nd->u.shop.shop_item[n].qty = script_getnum(st,i + 2);
+			nd->u.shop.shop_item[n].flag = 1;
+			npc_market_tosql(nd->exname,&nd->u.shop.shop_item[n]);
+		}
+#endif
 	}
 	nd->u.shop.count = n;
 
@@ -15421,23 +15455,52 @@ BUILDIN_FUNC(npcshopitem)
 
 BUILDIN_FUNC(npcshopadditem)
 {
-	const char* npcname = script_getstr(st,2);
-	struct npc_data* nd = npc_name2id(npcname);
+	const char *npcname = script_getstr(st,2);
+	struct npc_data *nd = npc_name2id(npcname);
 	int n, i;
 	int amount;
+	uint16 offs = 2;
 
-	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
-	{ //Not found.
+	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP &&
+		nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP) ) { //Not found
 		script_pushint(st,0);
 		return 0;
 	}
 
+	if( nd->subtype == NPCTYPE_MARKETSHOP )
+		offs = 3;
+
 	//Get the count of new entries
-	amount = (script_lastdata(st) - 2) / 2;
+	amount = (script_lastdata(st) - 2) / offs;
+
+#if PACKETVER >= 20131223
+	if( nd->subtype == NPCTYPE_MARKETSHOP ) {
+		for( n = 0, i = 3; n < amount; n++, i += offs ) {
+			uint16 nameid = script_getnum(st,i), j;
+
+			//Check existing entries
+			ARR_FIND(0,nd->u.shop.count,j,nd->u.shop.shop_item[j].nameid == nameid);
+			if( j == nd->u.shop.count ) {
+				RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.count + 1);
+				j = nd->u.shop.count;
+				nd->u.shop.shop_item[j].flag = 1;
+				nd->u.shop.count++;
+			}
+
+			nd->u.shop.shop_item[j].nameid = nameid;
+			nd->u.shop.shop_item[j].value = script_getnum(st,i + 1);
+			nd->u.shop.shop_item[j].qty = script_getnum(st,i + 2);
+
+			npc_market_tosql(nd->exname,&nd->u.shop.shop_item[j]);
+		}
+		script_pushint(st,1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+#endif
 
 	//Append new items to existing shop item list
 	RECREATE(nd->u.shop.shop_item,struct npc_item_list,nd->u.shop.count + amount);
-	for( n = nd->u.shop.count, i = 3; n < nd->u.shop.count+amount; n++, i += 2 ) {
+	for( n = nd->u.shop.count, i = 3; n < nd->u.shop.count+amount; n++, i += offs ) {
 		nd->u.shop.shop_item[n].nameid = script_getnum(st,i);
 		nd->u.shop.shop_item[n].value = script_getnum(st,i + 1);
 	}
@@ -15449,15 +15512,15 @@ BUILDIN_FUNC(npcshopadditem)
 
 BUILDIN_FUNC(npcshopdelitem)
 {
-	const char* npcname = script_getstr(st,2);
-	struct npc_data* nd = npc_name2id(npcname);
+	const char *npcname = script_getstr(st,2);
+	struct npc_data *nd = npc_name2id(npcname);
 	unsigned short nameid;
 	int n, i;
 	int amount;
 	int size;
 
-	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
-	{ //Not found.
+	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP &&
+		nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP) ) { //Not found
 		script_pushint(st,0);
 		return 0;
 	}
@@ -15470,7 +15533,12 @@ BUILDIN_FUNC(npcshopdelitem)
 		nameid = script_getnum(st,i);
 		ARR_FIND(0,size,n,nd->u.shop.shop_item[n].nameid == nameid);
 		if( n < size ) {
-			memmove(&nd->u.shop.shop_item[n],&nd->u.shop.shop_item[n + 1],sizeof(nd->u.shop.shop_item[0]) * (size - n));
+			if( n + 1 != size )
+				memmove(&nd->u.shop.shop_item[n],&nd->u.shop.shop_item[n + 1],sizeof(nd->u.shop.shop_item[0]) * (size - n));
+#if PACKETVER >= 20131223
+			if( nd->subtype == NPCTYPE_MARKETSHOP )
+				npc_market_delfromsql_(nd->exname,nameid,false);
+#endif
 			size--;
 		}
 	}
@@ -15482,18 +15550,21 @@ BUILDIN_FUNC(npcshopdelitem)
 	return SCRIPT_CMD_SUCCESS;
 }
 
-//Sets a script to attach to a shop npc.
+/**
+ * Sets a script to attach to a shop npc.
+ * npcshopattach "<npc_name>";
+ */
 BUILDIN_FUNC(npcshopattach)
 {
-	const char* npcname = script_getstr(st,2);
-	struct npc_data* nd = npc_name2id(npcname);
+	const char *npcname = script_getstr(st,2);
+	struct npc_data *nd = npc_name2id(npcname);
 	int flag = 1;
 
 	if( script_hasdata(st,3) )
 		flag = script_getnum(st,3);
 
-	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP && nd->subtype != NPCTYPE_POINTSHOP) )
-	{ //Not Found.
+	if( !nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP &&
+		nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP) ) { //Not Found
 		script_pushint(st,0);
 		return 0;
 	}
@@ -16155,7 +16226,7 @@ BUILDIN_FUNC(setunitdata)
 	TBL_PET *pd = NULL;
 	TBL_ELEM *ed = NULL;
 	TBL_NPC *nd = NULL;
-	int type, value;
+	int type, value = 0;
 
 	bl = map_id2bl(script_getnum(st,2));
 
@@ -18813,20 +18884,23 @@ BUILDIN_FUNC(checkbound) {
 		script_pushint(st,sd->status.inventory[i].bound);
 		return 0;
 	} else
-		script_pushint(st,0tory[i].amoSCRIPT_CMD_SUCCESSnt;
-		}* Creates new party
+		script_pushint(st,0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/** Creates new party
  * party_create "<party name>"{,<char id>{,<item share>{,<item share type>}}};
  * @param party_name: String of party name that will be created
  * @param char_id: Chara that will be leader of this new party. If no char_id specified, the invoker will be party leader
  * @param item_share: 0-Each Take. 1-Party Share
  * @param item_share_type: 0-Each Take. 1-Even Share
- * @return val: Result value 0-Each Take. 1-Even Share
- * Return values:
+ * @return val: Result value
  *	-3	- party name is exist
  *	-2	- player is in party already
  *	-1	- player is not found
  *	0	- unknown error
- *	1	- succes*------------------------------------------*/
+ *	1	- success, will return party id $@party_create_id
+ */
 BUILDIN_FUNC(party_create)
 {
 	char party_name[NAME_LENGTH];
@@ -18843,7 +18917,9 @@ BUILDIN_FUNC(party_create)
 		return 0;
 	}
 
-	safestrncpy(party_name,script_ge
+	safestrncpy(party_name,script_getstr(st,2),NAME_LENGTH);
+	trim(party_name);
+
 	if( party_searchname(party_name) ) {
 		script_pushint(st,-3);
 		return 0;
@@ -18851,24 +18927,27 @@ BUILDIN_FUNC(party_create)
 
 	if( script_getnum(st,4) )
 		item1 = 1;
-;
-	}
-	if( script_getnum(st,4) )
-		item1 = 1;
+
 	if( script_getnum(st,5) )
 		item2 = 1;
 
 	party_create_byscript = 1;
-	script_pushint(st,party_SCRIPT_CMD_SUCCESSreate(s* Adds player to specified party
+	script_pushint(st,party_create(sd,party_name,item1,item2));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/** Adds player to specified party
  * party_addmember <party id>,<char id>;
  * @param party_id: The party that will be entered by player
  * @param char_id: Char id of player that will be joined to the party
- * @return val: Result value player to specified party
- * Return values:
+ * @return val: Result value
  *	-4	- party is full
  *	-3	- party is not found
  *	-2	- player is in party already
- *	-1	- player is not *------------------------------------------*/
+ *	-1	- player is not found
+ *	0	- unknown error
+ *	1	- success
+ */
 BUILDIN_FUNC(party_addmember)
 {
 	int party_id = script_getnum(st,2);
@@ -18877,7 +18956,11 @@ BUILDIN_FUNC(party_addmember)
 
 	if( !(sd = map_charid2sd(script_getnum(st,3))) ) {
 		script_pushint(st,-1);
-			script_pushint(st,-2);
+		return 0;
+	}
+
+	if( sd->status.party_id ) {
+		script_pushint(st,-2);
 		return 0;
 	}
 
@@ -19148,7 +19231,7 @@ BUILDIN_FUNC(montransform) {
  * @param icon
  * @param char_id
  * @author [Cydh]
- **/
+ */
 BUILDIN_FUNC(bonus_script) {
 	uint16 flag = 0;
 	int16 icon = SI_BLANK;
@@ -19522,6 +19605,50 @@ BUILDIN_FUNC(mergeitem) {
 	}
 	aFree(items);
 	script_pushint(st,count);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/**
+ * Update an entry from NPC shop.
+ * npcshopupdate "<name>",<item_id>,<price>{,<stock>}
+ */
+BUILDIN_FUNC(npcshopupdate) {
+	const char *npcname = script_getstr(st,2);
+	struct npc_data* nd = npc_name2id(npcname);
+	uint16 nameid = script_getnum(st,3);
+	int price = script_getnum(st,4);
+#if PACKETVER >= 20131223
+	uint16 stock = (script_hasdata(st,5) ? script_getnum(st,5) : 0);
+#endif
+	int i;
+
+	if (!nd || (nd->subtype != NPCTYPE_SHOP && nd->subtype != NPCTYPE_CASHSHOP && nd->subtype != NPCTYPE_ITEMSHOP &&
+		nd->subtype != NPCTYPE_POINTSHOP && nd->subtype != NPCTYPE_MARKETSHOP)) { // Not found
+		script_pushint(st,0);
+		return 1;
+	}
+
+	if (!nd->u.shop.count) {
+		ShowError("buildin_npcshopupdate: Attempt to update empty shop from '%s'.\n",nd->exname);
+		script_pushint(st,0);
+		return 1;
+	}
+
+	for (i = 0; i < nd->u.shop.count; i++) {
+		if (nd->u.shop.shop_item[i].nameid == nameid) {
+
+			if (price != 0)
+				nd->u.shop.shop_item[i].value = price;
+#if PACKETVER >= 20131223
+			if (nd->subtype == NPCTYPE_MARKETSHOP) {
+				nd->u.shop.shop_item[i].qty = stock;
+				npc_market_tosql(nd->exname,&nd->u.shop.shop_item[i]);
+			}
+#endif
+		}
+	}
+
+	script_pushint(st,1);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -20073,6 +20200,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(delspiritball,"i?"),
 	BUILDIN_DEF(countspiritball,"?"),
 	BUILDIN_DEF(mergeitem,"?"),
+	BUILDIN_DEF(npcshopupdate,"sii?"),
 
 #include "../custom/script_def.inc"
 
