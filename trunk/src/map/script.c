@@ -18336,7 +18336,7 @@ BUILDIN_FUNC(setew mount or 0 otherwise
   **/
 BUILDIN_FUNC(ismounting) {
 	TBL_PC* sd;
-	if( (sd = scsd->sc.option && (sd->sc.option&(OPTION_WUGRIDER|OPTION_RIDING|OPTION_DRAGON|OPTION_MADOGEAR)) ) {
+	if( (sd = scsd->sc.option && (sd->sc.option&(OPTION_RIDING|OPTION_DRAGON|OPTION_WUGRIDER|OPTION_MADOGEAR)) ) {
 		clif_msg(sd,ITEM_NEED_REINS_OF_MOUNT);
 		script_pushint(st,0); //Can't mount with one of these
 	} else {
