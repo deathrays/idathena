@@ -6620,7 +6620,7 @@ BUILDIN_FUNC(getnameditem)
 	item_tmp.card[0] = CARD0_CREATE; //We don't use 255! because for example SIGNED WEAPON shouldn't get TOP10 BS Fame bonus [Lupus]
 	item_tmp.card[2] = tsd->status.char_id;
 	item_tmp.card[3] = tsd->status.char_id>>16;
-	if(pc_additem(sd,&item_tmp,1,LOG_TYPE_SCRIPT)) {
+	if( pc_additem(sd,&item_tmp,1,LOG_TYPE_SCRIPT) ) {
 		script_pushint(st,0);
 		return 0; //Failed to add item, we will not drop if they don't fit
 	}
@@ -6635,7 +6635,17 @@ BUILDIN_FUNC(getnameditem)
  *------------------------------------------*/
 BUILDIN_FUNC(grouprandomitem)
 {
-	script_pushint(st,itemdb_searchrandomid(script_getnum(st,2),script_getnum(st,3)));
+	struct s_item_group_entry *entry = NULL;
+	int sub_group = 1;
+
+	FETCH(3,sub_group);
+	entry = itemdb_get_randgroupitem(script_getnum(st,2),sub_group);
+	if( !entry ) {
+		ShowError("buildin_grouprandomitem: Invalid item group with group_id '%d', sub_group '%d'.\n",script_getnum(st,2),sub_group);
+		script_pushint(st,UNKNOWN_ITEM_ID);
+		return 1;
+	}
+	script_pushint(st,entry->nameid);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -7302,12 +7312,13 @@ BUILDIN_FUNC(getguildname)
 	if( (g = guild_search(guild_id)) != NULL )
 		script_pushstrcopy(st,g->name);
 	else
-		script_pushconststr(st,"null");
-	return SCRIPT_CMD_SUCCESS;
+		script_pushconststr(st,"null")
+	sd=scripSCRIPT_CMD_SUCCESS_rid2sd(st);
+	pc_resetskill(sd,1);
+	return 0;
 }
 
-/*==========================================
- * Return the name of the guild master of @guild_id
+/*= Return the name of the guild master of @guild_id
  * null if not found
  *------------------------------------------*/
 BUILDIN_FUNC(getguildmaster)
@@ -11240,10 +11251,10 @@ BUILDIN_FUNC(setmapflag)
 			case MF_NOJOBEXP:		map[m].flag.nojobexp = 0; break;
 			case MF_NOMOBLOOT:		map[m].flag.nomobloot = 0; break;
 			case MF_NOMVPLOOT:		map[m].flag.nomvploot = 0; break;
-			case MF_NORETURN:		map[m].flag.noreturn = 0; break;
-			case MF_NOWARPTO:		map[m].flag.nowarpto = 0; break;
+			case MF_NORETse MF_NOWARPTO:		map[m].flag.nowarpto = 0; break;
 			case MF_NIGHTMAREDROP:		map[m].flag.pvp_nightmaredrop = 0; break;
-			ca + 1);
+			case MF_RESTRICTED:
+				map[m].zone ^= 1<<(val + 1);
 				if(map[m].zone == 0)
 					map[m].flag.restricted = 0;
 				break;
@@ -15128,17 +15139,22 @@ BUILDIN_FUNC(compare)
 
 	str1 = script_getstr(st,2);
 	str2 = script_getstr(st,3);
-	script_pushint(st,strcmp(str1,str2shint(st,(stSCRIPT_CMD_SUCCESSistr(mesage,cmpstring) != NULL));
-	return 0;
+	script_pushint(st,strcmp(str1,str2));
+	return SCRIPT_CMD_SUCCESS;
 }
 
-// [zBuffer] List of mathematics commaands --->
+//[zBuffer] List of mathematics commands --->
 BUILDIN_FUNC(sqrt)
 {
 	double i, a;
+
 	i = script_getnum(st,2);
-	a = sSCRIPT_CMD_SUCCESSrt(i);
-	scrN_FUNC(pow)
+	a = sqrt(i);
+	script_pushint(st,(int)a);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(pow)
 {
 	double i, a, b;
 
@@ -18495,14 +18511,11 @@ if( create ) {
 		atcmd_binding[i]->level = levereturn SCRIPT_CMD_SUCCESS_binding[i]->level2 = level2;
 	}
 	
-	return 0;
-}
-
-BUILDIN_FUNC(unbindatcmd) {
-	const char* atcmd;
+	return 0 *atcmd;
 	int i =  0;
 
-	atcmd = script_getstr(st, 2);
+	atcmd = script_getstr(st, 2);tr(st,2);
+	eventName = script_getstr(st,3);
 
 	if( *atcmd == atcommand_symbol |
 	if( atcmd_binding_count == 0 ) {
@@ -18516,25 +18529,22 @@ BUILDIN_FUNC(unbindatcmd) {
 
 		aFree(atcmd_binding[i]);
 		atcmd_binding[i] = NULL;
-		/* Cnding[i]);
-		atcmd_binding[i] = NULL;
-		/* compact the list now that we freed a slot somewhere */
+		//Compact the list now that we freed a slot somewhere
 		for( i = 0, cursor = 0; i < atcmd_binding_count; i++ ) {
-			i
-			if( cursor != i ) {
-				memmove(&atcmd_binding[cursor],&atcmd_binding[i],sizeof(struct atcmd_binding_data*));
-			}
-izeof(struct atcmd_binding_data*));
+			if( atcmd_binding[i] == NULL )
+				continue;
+			if( cursor != i )
+				memmove(&atcmd_binding[cursor],&atcmd_binding[i],sizeof(struct atcmd_binding_data *));
+			cursor++;
+		}_binding_data*));
 			}
 			
 			cursor++;
 		}
 
-		if( (atcmd_binding_coun
-		script_pushint(st,1);
+		if( (atcmd_binding_coun		script_pushint(st,1);
 	} else
-		script_pushint(st,0); /* Nst, 1);
-	} e
+		script_pushint(st,0); //Not founde
 	return SCRIPT_CMD_SUCCESSt_pushint(st, 0);/* not found */
 	
 	return 0;
@@ -18600,38 +18610,40 @@ BUILDIN_FUNC(checkre)
 #endif
 			break;
 		default:
-			ShowWarning("buildin_checkre: uSCRIPT_CMD_SUCCESSknown parameter.\n");
-			break;
-	}
-	return 0;
-{,<sub_group>} */
+			ShowWarning("buildin_checkre: uSCRIPT_CMD_SUCCESSknown p*
+ * getrandgroupitem <group_id>{,<quantity>{,<sub_group>}}
+ */
 BUILDIN_FUNC(getrandgroupitem) {
-	TBL_PC* sd;
+	TBL_PC *sd;
 	int i, get_count = 0;
-	unsigned short nameid;
-	uint16 group = script_getnum(st,2), qty = script_getnum(st,3);
-	uint8 sub_group = script_getnum(st,4);
+	uint16 group = script_getnum(st,2), qty = 0;
+	uint8 sub_group = 1;
 	struct item item_tmp;
+	struct s_item_group_entry *entry = NULL;
 
 	if( !(sd = script_rid2sd(st)) )
-		return 0;dgroupi!group	}
+		return 0;
 
-	if( group < 1 || group >= MAX_ITEMGROUP ) {
-		Sh(%d)!\n",group);
+	if( !group ) {
+		ShowError("buildin_getrandgroupitem: Invalid group id (%d)!\n",script_getnum(st,2));
 		return 1;
 	}
 
-	nameid = itemdb_searchrandomid(group,sub_group);
-	memset(&item_tmp,0,sizeof(item_tmp));
+	FETCH(3,qty);
+	FETCH(4,sub_group);
 
-	item_tmp.nameid = nameid;
-	item_tmp.identify = itemdb_isidentified(nameid);
+	entry = itemdb_get_randgroupitem(group,sub_group);
+	if( !entry )
+		return 1; //Ensure valid item id
+
+	memset(&item_tmp,0,sizeof(item_tmp));
+	item_tmp.nameid = entry->nameid;
+	item_tmp.identify = itemdb_isidentified(entry->nameid);
 
 	if( !qty )
-		qty = itemdb_get_randgroupitem_count(group,sub_group,nameid);
+		qty = entry->amount;
 
-	//Check if it's stackable.
-	if( !itemdb_isstackable(nameid) ) {
+	if( !itemdb_isstackable(entry->nameid) ) { //Check if it's stackable
 		item_tmp.amount = 1;
 		get_count = qty;
 	} else {
@@ -18640,10 +18652,9 @@ BUILDIN_FUNC(getrandgroupitem) {
 	}
 
 	for( i = 0; i < get_count; i++ ) {
-		unsigned char flag = 0;
+		if( !pet_create_egg(sd,entry->nameid) ) { //If not pet egg
+			unsigned char flag = 0;
 
-		//If not pet egg
-		if( !pet_create_egg(sd,nameid) ) {
 			if( (flag = pc_additem(sd,&item_tmp,item_tmp.amount,LOG_TYPE_SCRIPT)) ) {
 				clif_additem(sd,0,0,flag);
 				if( pc_candrop(sd,&item_tmp) )
@@ -18651,11 +18662,11 @@ BUILDIN_FUNC(getrandgroupitem) {
 			}
 		}
 	}
-
 	return SCRIPT_CMD_SUCCESS;
 }
 
-/* getgroupitem <group_id>;
+/**
+ * getgroupitem <group_id>;
  * Gives item(s) to the attached player based on item group contents
  */
 BUILDIN_FUNC(getgroupitem) {
@@ -18665,18 +18676,12 @@ BUILDIN_FUNC(getgroupitem) {
 	if( !(sd = script_rid2sd(st)) )
 		return 0;
 
-	if (itemdb_pc_get_itemgroup(group_id,sd)) {
+	if( itemdb_pc_get_itemgroup(group_id,sd) ) {
 		ShowError("getgroupitem: Invalid group id '%d' specified.\n",group_id);
-		return 1;d->bl.m,sd->bSCRIPT_CMD_SUCCESS.x,sd->bl.y,0,0,0,0);
-			}
-		}
-	}
-
-	return 0;
-}
-
-/* cleanmap <map_name>;
- * cleanarea <map_name>, <x0>, <y0>, <x1>, <y1>; */
+		return 1;d->bl.m,sd->bSCRIPT_CMD_SUCCESS.x,sd->*
+ * cleanmap <map_name>;
+ * cleanarea <map_name>, <x0>, <y0>, <x1>, <y1>;
+leanarea <map_name>, <x0>, <y0>, <x1>, <y1>; */
 static int atcommand_cleanfloor_sub(struct block_list *bl, va_list ap)
 {
     nullpo_ret(bSCRIPT_CMD_SUCCESS);
@@ -18704,7 +18709,8 @@ BUILDIN(cleanmap)
         if( x0 > 0 && y0 > 0 && x1 > 0 && y1 > 0 )
             map_foreachinarea(atcommand_cleanfloor_sub,m,x0,y0,x1,y1,tcommand_cleanfloor_sub, m, x0, y0, x1, y1, BL_ITEM);
         else {
-            ShowError("cleanarea: invalid coordinate defined!    return SCRIPT_CMD_SUCCESS     return 1;
+            ShowError("cleanarea: invalid coordinate defined!    return SCRIPT_CMD_SUCCESS     re*
+ eturn 1;
         }
     }
 
@@ -18713,7 +18719,8 @@ BUILDIN(cleanmap)
 
 /* Cast a skill on the attached player.
  * npcskill <skill id>, <skill lvl>, <stat point>, <NPC level>;
- * npcskill "<skill name>", <skill lvl>, <stat point>, <NPC level>; */
+ * npcskill "<skill nam
+e>", <skill lvl>, <stat point>, <NPC level>; */
 BUILDIN_FUNC(npcskill)
 {
 	uint16 skill_id;
@@ -20150,7 +20157,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(is_function,"s"),
 	BUILDIN_DEF(get_revision,""),
 	BUILDIN_DEF(freeloop,"?"),
-	BUILDIN_DEF(getrandgroupitem,"ii?"),
+	BUILDIN_DEF(getrandgroupitem,"i??"),
 	BUILDIN_DEF(cleanmap,"s"),
 	BUILDIN_DEF2(cleanmap,"cleanarea","siiii"),
 	BUILDIN_DEF(npcskill,"viii"),
